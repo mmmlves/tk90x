@@ -8,10 +8,12 @@ keystore.properties
 
 # Saidas de build e pacotes gerados
 build/
-dist/
-*.apk
 *.o
+*.apk
 *.exe
+# dist/ e versionado (binarios prontos para instalar sem compilar)
+!dist/**/*.apk
+!dist/**/*.exe
 
 # Toolchains baixados localmente (llvm-mingw, SDL2, Android SDK/NDK, zxdev):
 # veja docs/research/windows-build.md, docs/research/android-build.md e docs/ANDROID.md

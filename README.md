@@ -4,6 +4,12 @@ Emulador dos microcomputadores brasileiros **TK90X** (1985) e **TK95** (1986) da
 clones do ZX Spectrum 48K. Escrito em C99 com SDL2, o mesmo código roda no **Linux**, no
 **Windows** e no **Android** (veja a seção [Android](#android)).
 
+> **Instalar sem compilar:** os binários prontos (Windows `.exe`, Android `.apk`, Linux) e as
+> instruções de instalação estão em [dist/](dist/README.md). Download direto:
+> [Windows](https://github.com/mmmlves/tk90x/raw/main/dist/windows/tk90x.exe) ·
+> [Android](https://github.com/mmmlves/tk90x/raw/main/dist/android/tk90x.apk) ·
+> [Linux](https://github.com/mmmlves/tk90x/raw/main/dist/linux/tk90x).
+
 A ideia é reproduzir a experiência do aparelho: ele liga com a tela de abertura original da ROM
 ("TK Color Computer" e a barra colorida), e os programas carregam **como de fita**. O emulador
 digita `LOAD ""`, dá play na fita e a própria ROM carrega o programa, com o `Program: NOME`, as
