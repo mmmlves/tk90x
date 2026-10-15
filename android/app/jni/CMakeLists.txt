@@ -21,6 +21,7 @@ set(TK_SOURCES
   ${TK_SRC_DIR}/tape.c
   ${TK_SRC_DIR}/snapshot.c
   ${TK_SRC_DIR}/machine.c
+  ${TK_SRC_DIR}/profiles.c
   ${TK_SRC_DIR}/roms_embedded.c
   ${TK_SRC_DIR}/png.c
   ${TK_SRC_DIR}/platform.c

@@ -20,7 +20,7 @@ else
   SDL_LIBS   := -Ltools/sdl2-linux/lib -lSDL2 -Wl,-rpath,/usr/lib/x86_64-linux-gnu
 endif
 
-CORE_SRC = src/z80.c src/tape.c src/snapshot.c src/machine.c src/roms_embedded.c
+CORE_SRC = src/z80.c src/tape.c src/snapshot.c src/machine.c src/roms_embedded.c src/profiles.c
 APP_SRC  = $(CORE_SRC) src/png.c src/platform.c src/osd.c src/touch.c src/main.c
 
 BUILD = build

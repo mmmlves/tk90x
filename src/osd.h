@@ -75,6 +75,10 @@ typedef struct Osd {
     char     info[OSD_TEXT_MAX];       /* linha de estado mostrada na ajuda */
     char     tape_info[OSD_TEXT_MAX];  /* fita na ajuda: progresso, bloco, velocidade */
     char     tape_block[OSD_TEXT_MAX]; /* descricao do bloco atual (pode ser "") */
+    char     controls[OSD_TEXT_MAX];   /* perfil do jogo: "Controles: ..." ("" = nenhum) */
+    char     controls2[OSD_TEXT_MAX];  /* perfil do jogo: como comecar ("" = nada) */
+    int      diag;                     /* diagnostico: canto com o estado do joystick */
+    char     diag_text[32];
 
     /* Navegador de arquivos */
     char      dir[PLAT_PATH_MAX];      /* diretorio atual (lembrado entre aberturas) */
@@ -112,10 +116,16 @@ void osd_set_font(Osd *o, const uint8_t *rom);
 
 /* Linha de status na borda inferior (NULL ou "" esconde). */
 void osd_set_status(Osd *o, const char *text);
-/* Mensagem temporaria por ms milissegundos, a partir de now_ms. */
+/* Mensagem temporaria por ms milissegundos, a partir de now_ms. Um '\n' divide
+ * o texto em duas linhas (a segunda some nos paineis grandes do desktop). */
 void osd_toast(Osd *o, uint32_t now_ms, uint32_t ms, const char *text);
 /* Linha de informacao exibida no topo da ajuda (modelo, Hz, joystick...). */
 void osd_set_info(Osd *o, const char *text);
+/* Controles do jogo aberto (perfil): mostrados no menu (F1) e na pagina do
+ * joystick da ajuda. NULL/"" = nenhum. */
+void osd_set_controls(Osd *o, const char *line1, const char *line2);
+/* Diagnostico: texto curto num canto da imagem (NULL/"" esconde). */
+void osd_set_diag(Osd *o, const char *text);
 /* Fita na ajuda: linha de progresso e descricao do bloco atual (NULL = nenhuma). */
 void osd_set_tape_info(Osd *o, const char *text, const char *block);
 

@@ -21,6 +21,7 @@
 #endif
 
 #include "machine.h"
+#include "profiles.h"
 #include "png.h"
 #include "compat.h"
 
@@ -693,6 +694,75 @@ static void test_raw_files(void)
     del_machine(m);
 }
 
+/* Modos de teclado do joystick: QAOP e as teclas do jogo (perfil) */
+static void test_joy_modes(void)
+{
+    printf("[joystick: QAOP e teclas do jogo]\n");
+    Machine *m = new_machine(MODEL_TK95, 0, 0);
+    Z80 *c = &m->cpu;
+    m->cfg.joymode = JOYMODE_QAOP;
+    machine_joy(m, JOY_UP | JOY_RIGHT | JOY_FIRE);
+    CHECK((c->bus.in(m, 0xFBFE) & 0x1F) == 0x1E, "QAOP cima = Q: %02X", c->bus.in(m, 0xFBFE));
+    CHECK((c->bus.in(m, 0xDFFE) & 0x1F) == 0x1E, "QAOP dir = P: %02X", c->bus.in(m, 0xDFFE));
+    CHECK((c->bus.in(m, 0x7FFE) & 0x1F) == 0x1E, "QAOP fogo = SPACE: %02X", c->bus.in(m, 0x7FFE));
+    CHECK((c->bus.in(m, 0xEFFE) & 0x1F) == 0x1F, "QAOP nao aperta 6-0: %02X", c->bus.in(m, 0xEFFE));
+    machine_joy(m, JOY_LEFT | JOY_DOWN);
+    CHECK((c->bus.in(m, 0xDFFE) & 0x1F) == 0x1D, "QAOP esq = O: %02X", c->bus.in(m, 0xDFFE));
+    CHECK((c->bus.in(m, 0xFDFE) & 0x1F) == 0x1E, "QAOP baixo = A: %02X", c->bus.in(m, 0xFDFE));
+
+    /* teclas do jogo: fogo = SYM + M juntas, esquerda = Z */
+    JoyKeys k;
+    memset(&k, ZXK_COUNT, sizeof k);
+    k.key[4][0] = ZXK_SYM; k.key[4][1] = ZXK_M;
+    k.key[1][0] = ZXK_Z;
+    machine_set_joy_keys(m, &k);
+    m->cfg.joymode = JOYMODE_KEYS;
+    machine_joy(m, JOY_FIRE);
+    CHECK((c->bus.in(m, 0x7FFE) & 0x1F) == 0x19, "teclas do jogo: fogo = SYM+M: %02X",
+          c->bus.in(m, 0x7FFE));
+    machine_joy(m, JOY_LEFT | JOY_RIGHT);       /* direita sem tecla: nada */
+    CHECK((c->bus.in(m, 0xFEFE) & 0x1F) == 0x1D, "teclas do jogo: esq = Z: %02X", c->bus.in(m, 0xFEFE));
+    CHECK((c->bus.in(m, 0x00FE) & 0x1F) == 0x1D, "teclas do jogo: todas as linhas: %02X",
+          c->bus.in(m, 0x00FE));
+    machine_set_joy_keys(m, NULL);
+    CHECK((c->bus.in(m, 0x00FE) & 0x1F) == 0x1F, "sem teclas do jogo: nada apertado");
+    /* o teclado de verdade continua valendo junto */
+    machine_key(m, ZXK_X, 1);
+    CHECK((c->bus.in(m, 0xFEFE) & 0x1F) == 0x1B, "tecla X com o joystick: %02X", c->bus.in(m, 0xFEFE));
+    machine_key(m, ZXK_X, 0);
+    JoyKeys s1;
+    machine_joy_keys_of(m, JOYMODE_SINCLAIR1, &s1);
+    CHECK(s1.key[4][0] == ZXK_0 && s1.key[1][0] == ZXK_6, "tabela do Sinclair 1");
+    del_machine(m);
+}
+
+/* Perfis: CRC32 e um perfil para cada jogo de games/ (rodando da raiz do projeto) */
+static void test_profiles(void)
+{
+    printf("[perfis de controle dos jogos]\n");
+    CHECK(profile_crc32((const uint8_t *)"123456789", 9) == 0xCBF43926u, "CRC32 de referencia");
+    static const char *const files[] = {
+        "games/01-knight-lore-alt-deep-blue.tap", "games/02-manic-miner-alt-frank-n-stein-rebooted.tzx",
+        "games/03-jet-set-willy-alt-lala-prologue.tzx", "games/04-atic-atac-alt-castelo-corvoalto.tap",
+        "games/05-bruce-lee.tzx", "games/06-sabre-wulf-alt-selva-de-verdemor.tap",
+        "games/07-commando-alt-sgt-helmet-training-day.tap", "games/08-dizzy.tzx",
+        "games/09-green-beret.tzx", "games/10-boulder-dash.tzx", "games/extras/06-extra-doomskulle.tzx",
+    };
+    for (size_t i = 0; i < sizeof files / sizeof files[0]; i++) {
+        FILE *f = fopen(files[i], "rb");
+        if (!f) { printf("  (sem %s: pulado)\n", files[i]); continue; }
+        fclose(f);
+        const GameProfile *p = profile_for_file(files[i]);
+        CHECK(p != NULL, "perfil de %s", files[i]);
+        if (!p) continue;
+        CHECK(p->summary && strlen(p->summary) <= 28, "resumo curto em %s", p->name);
+        CHECK(p->mode != JOYMODE_KEYS || profile_has_keys(p), "teclas no perfil %s", p->name);
+        printf("  %-28s %08X %s\n", p->name, p->crc, p->summary);
+    }
+    CHECK(profile_count() == 11, "11 perfis (%d)", profile_count());
+    CHECK(profile_for_file("tests/data/dogmole.tap") == NULL, "arquivo sem perfil");
+}
+
 int main(int argc, char **argv)
 {
     if (argc > 1) g_data = argv[1];
@@ -720,6 +790,8 @@ int main(int argc, char **argv)
     test_vtape_reload("int_skip_v3.z80", 0);
     test_raw_files();
     test_open_detection();
+    test_joy_modes();
+    test_profiles();
 
     printf("\nmachine_test: %d ok, %d falhas\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

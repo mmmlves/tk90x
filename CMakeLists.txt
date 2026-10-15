@@ -35,6 +35,7 @@ set(TK_CORE_SRC
   src/snapshot.c
   src/machine.c
   src/roms_embedded.c
+  src/profiles.c
   src/png.c
 )
 set(TK_APP_SRC

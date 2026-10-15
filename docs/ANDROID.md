@@ -11,8 +11,9 @@ o teclado do TK na tela), roda em tela cheia na horizontal e já traz as fitas d
   escolhe no seletor do sistema ou abre com ele ("Abrir com").
 
 > **Situação:** o APK compila e passa nas verificações estáticas (`aapt2`, `apksigner`, símbolos
-> JNI), mas, por falta de KVM na máquina de build, **ainda não foi testado num aparelho** nem no
-> emulador do Android. Relate o que encontrar (veja "Depurar" no fim).
+> JNI). A versão 1.0 foi instalada num celular: os jogos abriam, mas o joystick parecia não
+> funcionar, porque a maioria dos jogos começa no teclado. A 1.1 corrige isso com os perfis dos
+> jogos (veja "O joystick em cada jogo"). Relate o que encontrar (veja "Depurar" no fim).
 
 ## 1. Instalar no celular
 
@@ -20,8 +21,8 @@ Há dois APKs, gerados por `make android` em `build/android/`:
 
 | Arquivo | Para quê |
 |---|---|
-| `tk90x-1.0-release.apk` (2,3 MB) | **O que você deve instalar.** Otimizado, assinado com a chave de desenvolvimento do projeto. |
-| `tk90x-1.0-debug.apk` (2,9 MB) | Para desenvolvimento (depurável, um pouco maior e mais lento). |
+| `tk90x-1.1-release.apk` (2,3 MB) | **O que você deve instalar.** Otimizado, assinado com a chave de desenvolvimento do projeto. |
+| `tk90x-1.1-debug.apk` (2,9 MB) | Para desenvolvimento (depurável, um pouco maior e mais lento). |
 
 Os dois têm o mesmo nome de pacote (`br.com.tk90x.emulador`), mas são assinados com chaves
 diferentes. O Android só atualiza um app com um APK assinado pela **mesma chave**: para trocar
@@ -30,7 +31,7 @@ gravados dentro do app.
 
 ### Sem cabo (o mais simples)
 
-1. Copie o `tk90x-1.0-release.apk` para o celular: mande por e-mail ou mensagem para você
+1. Copie o `tk90x-1.1-release.apk` para o celular: mande por e-mail ou mensagem para você
    mesmo, baixe de um link ou copie pelo cabo USB para a pasta `Download`.
 2. Toque no arquivo, no gerenciador de arquivos ("Arquivos", "Meus arquivos") ou na lista de
    downloads do navegador.
@@ -54,7 +55,7 @@ gravados dentro do app.
    ```sh
    . tools/android/env.sh
    adb devices                                         # o aparelho deve aparecer como "device"
-   adb install -r build/android/tk90x-1.0-release.apk  # -r = atualiza mantendo os dados
+   adb install -r build/android/tk90x-1.1-release.apk  # -r = atualiza mantendo os dados
    ```
 
    No Android 11 ou mais novo também dá sem cabo: Opções do desenvolvedor → Depuração por Wi-Fi,
@@ -73,7 +74,11 @@ usando o mouse no lugar do dedo. Ainda falta conferir tamanhos e posições num 
 
 - **Joystick** (à esquerda): arraste o polegar para as 8 direções. Ele segue o modo de joystick
   escolhido: por padrão o **Sinclair 1** embutido no TK (teclas 6, 7, 8, 9 e 0); o nome do modo
-  aparece embaixo do joystick. Kempston, Sinclair 2 e Cursor ficam no menu.
+  aparece acima do joystick. Kempston, Sinclair 2, Cursor, Teclas QAOP e Teclas do jogo ficam no
+  MENU > Joystick, e os jogos que vêm no app já abrem no modo certo (veja "O joystick em cada
+  jogo" abaixo). A área de toque fica longe das bordas (faixas de gesto do Android), e um polegar
+  que continua na tela depois de abrir o menu ou o teclado, ou de voltar ao app, volta a valer
+  assim que se mexe.
 - **FOGO** (à direita).
 - **Botões no alto, à direita:**
   - **MENU**: abre o menu de toque (a emulação pausa enquanto ele está aberto);
@@ -88,8 +93,9 @@ usando o mouse no lugar do dedo. Ainda falta conferir tamanhos e posições num 
   contrário) entra no modo E sem travar nenhum dos dois.
 - **Menu de toque** (botão MENU): **Abrir jogo**, **Abrir do aparelho**, **Fita** (play/pausa),
   **Rebobinar fita**, **Reiniciar**, **Turbo**, **Salvar estado** (snapshot `.z80`), **Captura
-  de tela**, **50/60 Hz**, **Modelo** (TK95, TK90X, TK90X v1), **Joystick** (modo), **Ajuda** e
-  **Sair**. O **X** no canto fecha o menu. A **Ajuda** tem 6 páginas (primeiros passos, carregar
+  de tela**, **50/60 Hz**, **Modelo** (TK95, TK90X, TK90X v1), **Joystick** (modo),
+  **Diagnóstico**, **Ajuda** e **Sair**. Com um jogo conhecido aberto, o título do menu mostra
+  `Controles: ...`. O **X** no canto fecha o menu. A **Ajuda** tem 6 páginas (primeiros passos, carregar
   uma fita, formatos, teclado, joystick, reset e modelos), trocadas com `<` e `>` ou um toque na
   metade esquerda/direita do texto; FECHAR (ou Voltar) fecha.
 - **Voltar** (botão ou gesto do Android): fecha o menu ou a janela aberta, como o Esc no PC.
@@ -97,6 +103,28 @@ usando o mouse no lugar do dedo. Ainda falta conferir tamanhos e posições num 
 
 Também funcionam um **teclado físico** (USB ou Bluetooth), com o mesmo mapeamento do PC
 (veja o README), e **controles de jogo** USB/Bluetooth, que viram o joystick do modo escolhido.
+
+### O joystick em cada jogo
+
+O joystick da tela não é mágico: ele aperta as teclas do modo escolhido, como o conector do TK.
+O jogo só obedece se estiver lendo essas teclas. A maioria dos jogos começa no **teclado**
+(Q, A, O, P, ou Z, X, M...) e só lê o joystick depois que você o escolhe no menu do jogo; sem
+teclado no celular, o joystick parecia morto.
+
+- **Jogos que vêm no app**: cada um tem um perfil. Ao abrir, o emulador troca o joystick para o
+  modo que funciona com os controles padrão do jogo e, quando a carga termina, mostra por 5 s
+  `Controles: <resumo>` e como começar, por exemplo `FOGO inicia` ou `TECLADO > 1 para jogar`
+  (toque TECLADO, a tecla, e TECLADO de novo para voltar ao joystick). A tabela completa está em
+  `games/LEIAME.md`, seção "Controles". Abrir outro arquivo devolve o modo que você usava.
+- **Outros jogos**: o modo tem de ser o mesmo que o jogo lê. Escolha em **MENU > Joystick**:
+  - opção "Interface 2", "Sinclair" ou "joystick" no menu do jogo: **Sinclair 1**;
+  - "Kempston": **Kempston**;
+  - "Cursor", "Protek" ou "AGF": **Cursor** (5 a 8 e 0);
+  - jogo no teclado com Q, A, O, P e espaço: **Teclas QAOP**;
+  - outras teclas: escolha no menu do jogo um dos joysticks acima.
+- **Diagnóstico** (MENU > Diagnóstico): mostra no canto de cima `JOY:XX modo`, os bits que o
+  joystick entrega ao TK (01 direita, 02 esquerda, 04 baixo, 08 cima, 10 fogo). Se o número muda
+  quando você toca, o toque chegou ao emulador e o problema é o modo (veja acima).
 
 ### Abrir jogos
 
@@ -133,7 +161,8 @@ disponível, eles ficam no armazenamento interno do app. Desinstalar o app apaga
 ### Segundo plano
 
 Ao trocar de app, apagar a tela ou receber uma ligação, a emulação e o som pausam; ao voltar,
-continuam de onde pararam. O Android pode encerrar o app em segundo plano, e nesse caso ele
+continuam de onde pararam. Em tela dividida (ou janela flutuante), tocar no outro app não pausa
+o TK90X, que continua visível; só ir para o segundo plano pausa. O Android pode encerrar o app em segundo plano, e nesse caso ele
 recomeça do zero: grave o estado antes se não quiser perder o jogo.
 
 ## 3. Compilar
@@ -154,8 +183,8 @@ O alvo roda `android/build.sh`, que carrega `tools/android/env.sh`, chama
 `./gradlew assembleDebug assembleRelease` e copia o resultado para:
 
 ```
-build/android/tk90x-1.0-debug.apk
-build/android/tk90x-1.0-release.apk
+build/android/tk90x-1.1-debug.apk
+build/android/tk90x-1.1-release.apk
 ```
 
 O primeiro build leva uns 2 minutos (o SDL é compilado para as 3 arquiteturas, em debug e
@@ -189,7 +218,8 @@ incremental cai para uns 15 segundos.
 `versionCode` e `versionName` ficam no começo de `android/app/build.gradle`
 (`tkVersionCode` / `tkVersionName`). Para publicar uma versão nova, aumente os dois: o
 `versionCode` tem de crescer para o Android aceitar a atualização, e o `versionName` entra no
-nome dos APKs.
+nome dos APKs. Versão atual: `versionCode` 2, `versionName` 1.1 (instala por cima da 1.0, que
+tem a mesma chave de assinatura).
 
 ### Assinatura
 
@@ -197,7 +227,7 @@ O release é assinado com a **chave de desenvolvimento** `tools/android/keystore
 (senha publicada de propósito em `keystore.properties`; não use para a Play Store). O debug usa a
 chave de debug do kit (`tools/android/android-user-home/debug.keystore`). Guarde as duas: um
 celular só aceita atualizar o app com APKs assinados pela mesma chave. Sem
-`keystore.properties`, o release sai sem assinatura (`tk90x-1.0-release-unsigned.apk`).
+`keystore.properties`, o release sai sem assinatura (`tk90x-1.1-release-unsigned.apk`).
 
 ### Estrutura
 
@@ -220,8 +250,8 @@ src/android_bridge.h, .c       ponte C <-> Java (so compila no Android)
 - **Bibliotecas nativas**: `libSDL2.so` e `libmain.so` por arquitetura. As de 64 bits saem
   alinhadas em páginas de 16 KB (`-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON`), exigência dos
   aparelhos com páginas de 16 KB do Android 15 em diante.
-- **Fontes C**: `z80.c tape.c snapshot.c machine.c roms_embedded.c png.c platform.c osd.c touch.c
-  main.c android_bridge.c`, de `src/`, com os mesmos avisos do build Linux
+- **Fontes C**: `z80.c tape.c snapshot.c machine.c profiles.c roms_embedded.c png.c platform.c
+  osd.c touch.c main.c android_bridge.c`, de `src/`, com os mesmos avisos do build Linux
   (`-std=c99 -Wall -Wextra -Wno-unused-parameter`). O código só do Android fica em
   `#ifdef __ANDROID__` ou em `android_bridge.c`.
 - **Jogos**: a tarefa `tk90xGamesAssets*` do Gradle copia `games/` (sem `games/src/` e sem
@@ -244,6 +274,7 @@ roda o `main()` de `src/main.c` numa thread própria (a "thread do SDL").
 | `android_open_picker()` | Chama `TK90XActivity.openFilePicker()` por JNI, que abre o `ACTION_OPEN_DOCUMENT` (tipo `*/*`, porque `.tap`/`.tzx` não têm tipo MIME registrado). |
 | `android_poll_picked(path, n)` | Devolve 1 e o caminho quando chegou um arquivo. O Java confere a extensão (`.tap .tzx .sna .z80 .scr .bin .cod`, ou nenhuma), copia o `content://` para `getCacheDir()/picked/<nome original>` numa thread de trabalho e chama `nativeFilePicked(byte[])` com o caminho em UTF-8 comum (não `String`: o `GetStringUTFChars` daria o UTF-8 "modificado" do Java, que difere dos bytes do nome no disco para emoji e outros caracteres fora do BMP); as entregas são serializadas, e o C guarda o caminho num buffer protegido por mutex até a thread do SDL buscá-lo. |
 | `android_games_dir()` | Na primeira execução, ou quando o carimbo de `games.idx` muda (APK novo com outras fitas), extrai `assets/games/*` para `<armazenamento interno>/games`, lendo do APK pelo `AAssetManager` do NDK (`getAssets()` por JNI; não pelo `SDL_RWFromFile`, que com caminho relativo tentaria antes o armazenamento interno e, numa atualização, copiaria a fita extraída antiga sobre ela mesma), e grava a lista em `games/.indice`. Arquivos que saíram do APK são apagados. Se algo falhar, a próxima execução tenta de novo. Devolve o diretório (ou NULL). |
+| `android_in_multiwindow()` | `Activity.isInMultiWindowMode()` por JNI (Android 7+; antes, 0). Em tela dividida ou janela flutuante, perder o foco não pausa a emulação; só ir para o segundo plano pausa. |
 | `android_keep_screen_on(on)` | `SDL_DisableScreenSaver()` / `SDL_EnableScreenSaver()`, que o SDL traduz para `FLAG_KEEP_SCREEN_ON`. O `main.c` desliga ao ir para o segundo plano e liga ao voltar. |
 
 O "Abrir com" (`ACTION_VIEW`) chega ao `onCreate` (app fechado) ou ao `onNewIntent` (app
@@ -287,7 +318,7 @@ Não há emulador do Android nesta máquina (sem KVM). Num aparelho com depuraç
 
 ```sh
 . tools/android/env.sh
-adb install -r build/android/tk90x-1.0-debug.apk
+adb install -r build/android/tk90x-1.1-debug.apk
 adb logcat -s SDL SDL/APP TK90X AndroidRuntime
 ```
 

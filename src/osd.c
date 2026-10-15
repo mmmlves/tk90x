@@ -61,7 +61,10 @@ static void to_ascii(const char *in, char *out, size_t outlen)
     const unsigned char *p = (const unsigned char *)in;
     size_t n = 0;
     if (!outlen) return;
-    while (*p && n + 1 < outlen) out[n++] = tk_ascii_fold(tk_utf8_next(&p));
+    while (*p && n + 1 < outlen) {
+        unsigned cp = tk_utf8_next(&p);
+        out[n++] = cp == '\n' ? '\n' : tk_ascii_fold(cp);   /* '\n': aviso em 2 linhas */
+    }
     out[n] = 0;
 }
 
@@ -212,6 +215,18 @@ void osd_toast(Osd *o, uint32_t now_ms, uint32_t ms, const char *text)
     copy_str(o->toast, sizeof o->toast, text ? text : "");
     o->toast_until = now_ms + ms;
     if (!o->toast_until) o->toast_until = 1;
+}
+
+void osd_set_controls(Osd *o, const char *line1, const char *line2)
+{
+    copy_str(o->controls, sizeof o->controls, line1 ? line1 : "");
+    copy_str(o->controls2, sizeof o->controls2, line2 ? line2 : "");
+}
+
+void osd_set_diag(Osd *o, const char *text)
+{
+    copy_str(o->diag_text, sizeof o->diag_text, text ? text : "");
+    o->diag = o->diag_text[0] != 0;
 }
 
 void osd_set_info(Osd *o, const char *text)
@@ -739,40 +754,40 @@ static const char *const help_p5_desk[] = {
     "Setas (automático, o padrão): no",
     "jogo são o joystick; no BASIC,",
     "movem o cursor. Alt = fogo.",
-    "O joystick do TK (Sinclair 1) usa",
-    "as teclas 6 esq., 7 dir., 8 baixo,",
-    "9 cima e 0 fogo.",
-    "Se o jogo não obedecer às setas:",
-    "- F9 troca o tipo: Sinclair 1,",
-    "  Kempston, Sinclair 2 ou Cursor;",
-    "- veja no jogo a opção de controle",
-    "  (teclado, joystick, Kempston...);",
-    "- muitos jogos usam Q cima, A baixo,",
-    "  O esq., P dir. e espaço = fogo.",
+    "F9 troca o tipo de joystick:",
+    "Sinclair 1 (6 esq. 7 dir. 8 baixo",
+    "9 cima 0 fogo, o do TK), Kempston,",
+    "Sinclair 2, Cursor (5-8 e 0),",
+    "Teclas QAOP (espaço = fogo) e",
+    "Teclas do jogo (jogo conhecido).",
+    "O tipo tem de ser o que o jogo lê:",
+    "Interface 2/Sinclair = Sinclair 1,",
+    "Protek/Cursor = Cursor, teclado =",
+    "QAOP ou as teclas do jogo. Os jogos",
+    "de games/ já abrem com o certo.",
     "F4: setas automáticas, sempre",
     "joystick ou sempre cursores.",
-    "Controle USB: funciona direto, como",
-    "o joystick escolhido no F9.",
+    "Controle USB: como o joystick.",
     NULL
 };
 static const char *const help_p5_touch[] = {
     "Joystick (esquerda): arraste o",
-    "polegar a partir do centro; são 8",
-    "direções. FOGO (direita): tiro.",
-    "Ele age como o joystick do TK",
-    "(Sinclair 1): teclas 6 esq., 7 dir.,",
-    "8 baixo, 9 cima e 0 fogo.",
-    "Se o jogo não obedecer:",
-    "- MENU > Joystick troca o tipo:",
-    "  Sinclair 1, Kempston, Sinclair 2",
-    "  ou Cursor;",
-    "- veja no jogo a opção de controle",
-    "  (teclado, joystick, Kempston...);",
-    "- muitos jogos usam Q cima, A baixo,",
-    "  O esq., P dir. e espaço = fogo",
-    "  (no TECLADO).",
-    "Controle USB ou Bluetooth: funciona",
-    "direto, como o joystick escolhido.",
+    "polegar; são 8 direções. FOGO",
+    "(direita): tiro. MENU > Joystick",
+    "troca o tipo: Sinclair 1 (6-0, o do",
+    "TK), Kempston, Sinclair 2, Cursor",
+    "(5-8 e 0), Teclas QAOP (espaço =",
+    "fogo) e Teclas do jogo.",
+    "O tipo tem de ser o que o jogo lê:",
+    "Interface 2/Sinclair = Sinclair 1,",
+    "Kempston = Kempston, Protek/Cursor",
+    "= Cursor; teclado = QAOP ou Teclas",
+    "do jogo. Os jogos que vêm no app já",
+    "abrem com o certo e avisam:",
+    "\"Controles: ...\".",
+    "MENU > Diagnóstico mostra JOY:XX no",
+    "canto: se muda ao tocar, o toque",
+    "chegou ao TK.",
     NULL
 };
 
@@ -847,6 +862,22 @@ static int help_count_lines(const char *const *l)
 {
     int n = 0;
     while (l[n] && n < HELP_LINES) n++;
+    return n;
+}
+
+#define HELP_JOY_PAGE 4   /* "JOGOS E JOYSTICK": recebe os controles do jogo aberto */
+
+/* Linhas da pagina; na do joystick, mais os controles do jogo aberto (perfil). */
+static int help_lines(const Osd *o, int page, const char **out)
+{
+    const char *const *l = help_text(o, page);
+    int n = help_count_lines(l);
+    for (int i = 0; i < n; i++) out[i] = l[i];
+    if (page == HELP_JOY_PAGE && o->controls[0]) {
+        if (n < HELP_LINES) out[n++] = o->controls;
+        if (o->controls2[0] && n < HELP_LINES) out[n++] = o->controls2;
+    }
+    out[n] = NULL;
     return n;
 }
 
@@ -995,6 +1026,8 @@ static void draw_menu(const Osd *o, const Cv *cv)
     /* fita: progresso e bloco atual (a linha de status da carga some apos 3 s) */
     cell_text(o, cv, 2, 2, o->tape_info, 36, C_DIR, 0, 0);
     if (o->tape_block[0]) cell_text(o, cv, 3, 3, o->tape_block, 35, C_DIR, 0, 0);
+    /* controles do jogo aberto (perfil), na linha livre acima dos itens */
+    if (o->controls[0]) cell_text(o, cv, 2, 4, o->controls, 36, C_TITLE, 0, 0);
     for (int i = 0; i < o->menu_n; i++) {
         const OsdMenuItem *it = &o->menu[i];
         int y = menu_y(o, i);
@@ -1012,7 +1045,7 @@ static void draw_menu(const Osd *o, const Cv *cv)
         if (it->value[0]) {
             to_ascii(it->value, a, sizeof a);
             int n = (int)strlen(a);
-            if (n > 12) n = 12;
+            if (n > 14) n = 14;
             put_text(o, cv, (38 - n) * 8, y, a, n, vc, 0, 0);
         }
     }
@@ -1021,7 +1054,8 @@ static void draw_menu(const Osd *o, const Cv *cv)
     if (y < 202) y = 202;
     put_text(o, cv, 2 * 8, y, "Setas/mouse escolhem, Enter usa;", 36, C_DIM, 0, 0);
     put_text(o, cv, 2 * 8, y + 10, "letra inicial = atalho. Esc fecha.", 36, C_DIM, 0, 0);
-    put_text(o, cv, 2 * 8, y + 20, "Dica: arraste um jogo p/ a janela.", 36, C_TITLE, 0, 0);
+    if (y + 28 <= 29 * 8)       /* a dica so cabe com poucos itens */
+        put_text(o, cv, 2 * 8, y + 20, "Dica: arraste um jogo p/ a janela.", 36, C_TITLE, 0, 0);
 }
 
 #define HELP_FOOT_Y 218   /* rodape da ajuda (pixels) */
@@ -1029,8 +1063,8 @@ static void draw_menu(const Osd *o, const Cv *cv)
 static void draw_help(const Osd *o, const Cv *cv)
 {
     int pg = help_clamp(o->help_page);
-    const char *const *l = help_text(o, pg);
-    int n = help_count_lines(l);
+    const char *l[HELP_LINES + 1];
+    int n = help_lines(o, pg, l);
     dim_rect(cv, 0, 0, FB_W, FB_H);
     draw_panel(cv, 1, 1, 38, 28);
     cell_text(o, cv, 2, 1, help_pages[pg].title, 27, C_TITLE, 0, 0);
@@ -1047,7 +1081,8 @@ static void draw_help(const Osd *o, const Cv *cv)
     for (int i = 0; i < n; i++) {
         char a[OSD_TEXT_MAX];
         to_ascii(l[i], a, sizeof a);
-        put_text(o, cv, 2 * 8, y0 + i * pitch, a, HELP_COLS, C_TEXT, 0, 0);
+        uint32_t fg = l[i] == o->controls || l[i] == o->controls2 ? C_TITLE : C_TEXT;
+        put_text(o, cv, 2 * 8, y0 + i * pitch, a, HELP_COLS, fg, 0, 0);
     }
     fill_rect(cv, 2 * 8, HELP_FOOT_Y - 4, 36 * 8, 1, C_FRAME);
     put_text(o, cv, 2 * 8, HELP_FOOT_Y, "< anterior", 10, pg > 0 ? C_TITLE : C_DIM, 0, 0);
@@ -1180,17 +1215,25 @@ static void draw_browser(const Osd *o, const Cv *cv)
 }
 
 /* Faixa escura + texto centralizado numa linha da grade */
-static void draw_band(const Osd *o, const Cv *cv, int row, const char *utf8, uint32_t fg)
+/* Faixa centrada na linha row; um '\n' no texto desenha a segunda linha logo
+ * abaixo (lines = 1 mostra so a primeira). */
+static void draw_band(const Osd *o, const Cv *cv, int row, const char *utf8, uint32_t fg,
+                      int lines)
 {
     char a[OSD_TEXT_MAX * 2];
     to_ascii(utf8, a, sizeof a);
-    int n = (int)strlen(a);
+    char *second = strchr(a, '\n');
+    if (second) *second++ = 0;
+    if (lines < 2) second = NULL;
     int maxn = cv->w / 8 - 1;
-    if (n > maxn) n = maxn;
-    int w = n * 8;
-    int x = (cv->w - w) / 2;
-    fill_rect(cv, x - 3, row * 8 - 2, w + 6, 12, C_TOAST);
-    put_text(o, cv, x, row * 8, a, n, fg, 0, 0);
+    int n1 = (int)strlen(a), n2 = second ? (int)strlen(second) : 0;
+    if (n1 > maxn) n1 = maxn;
+    if (n2 > maxn) n2 = maxn;
+    int wmax = (n1 > n2 ? n1 : n2) * 8;
+    int xb = (cv->w - wmax) / 2;
+    fill_rect(cv, xb - 3, row * 8 - 2, wmax + 6, second ? 22 : 12, C_TOAST);
+    put_text(o, cv, (cv->w - n1 * 8) / 2, row * 8, a, n1, fg, 0, 0);
+    if (second) put_text(o, cv, (cv->w - n2 * 8) / 2, row * 8 + 10, second, n2, fg, 0, 0);
 }
 
 /* Toast: some quando vence. Devolve 1 se ainda deve ser desenhado. */
@@ -1214,6 +1257,15 @@ void osd_render(Osd *o, uint32_t *fb, uint32_t now_ms)
         dim_rect(&cv, 4, FB_H - 12, n * 8 + 8, 10);
         put_text(o, &cv, 8, FB_H - 11, a, n, C_TEXT, 0, 0);
     }
+    /* diagnostico (menu > Diagnostico): estado do joystick no canto de cima,
+     * na borda, para ver se os toques chegam a maquina */
+    if (o->diag && o->diag_text[0]) {
+        int n = (int)strlen(o->diag_text);
+        if (n > OSD_COLS - 2) n = OSD_COLS - 2;
+        int x = FB_W - 4 - n * 8;
+        dim_rect(&cv, x - 2, 3, n * 8 + 4, 10);
+        put_text(o, &cv, x, 4, o->diag_text, n, C_TITLE, 0, 0);
+    }
     /* modo toque: menus e toast vao para a tela de toque (osd_render_canvas) */
     if (o->touch) return;
 
@@ -1232,12 +1284,15 @@ void osd_render(Osd *o, uint32_t *fb, uint32_t now_ms)
         if (o->mode == OSD_MENU || o->mode == OSD_HELP || o->mode == OSD_BROWSER) {
             char a[OSD_TEXT_MAX * 2];
             to_ascii(o->toast, a, sizeof a);
+            char *nl = strchr(a, '\n');
+            if (nl) *nl = 0;            /* so a primeira linha cabe no titulo */
             int n = (int)strlen(a);
             if (n > 36) n = 36;
             fill_rect(&cv, 2 * 8 - 2, 1 * 8 - 1, 36 * 8 + 4, 9, C_TOAST);
             put_text(o, &cv, (FB_W - n * 8) / 2, 1 * 8, a, n, C_TITLE, 0, 0);
         } else {
-            draw_band(o, &cv, o->mode == OSD_NONE ? 1 : OSD_ROWS - 1, o->toast, C_TITLE);
+            draw_band(o, &cv, o->mode == OSD_NONE ? 1 : OSD_ROWS - 1, o->toast, C_TITLE,
+                      o->mode == OSD_NONE ? 2 : 1);
         }
     }
 }
@@ -1434,8 +1489,8 @@ static void t_draw_help(const Osd *o, const Cv *cv)
     HelpGeom g;
     t_help_geom(o, &g);
     int pg = help_clamp(o->help_page);
-    const char *const *l = help_text(o, pg);
-    int n = help_count_lines(l);
+    const char *l[HELP_LINES + 1];
+    int n = help_lines(o, pg, l);
     dim_rect(cv, 0, 0, cv->w, cv->h);
     t_panel(cv, g.x, g.y, g.w, g.h);
     int cols = (g.w - 16) / 8;
@@ -1451,7 +1506,8 @@ static void t_draw_help(const Osd *o, const Cv *cv)
     if (pitch > 11) pitch = 11;
     if (pitch < 8) pitch = 8;
     for (int i = 0; i < n && y0 + i * pitch + 8 <= g.by - 2; i++)
-        px_text(o, cv, tx, y0 + i * pitch, l[i], cols, C_TEXT, 1);
+        px_text(o, cv, tx, y0 + i * pitch, l[i], cols,
+                l[i] == o->controls || l[i] == o->controls2 ? C_TITLE : C_TEXT, 1);
     int pr = o->ptr_down ? o->ptr_btn : 0;
     t_button(o, cv, g.px, g.by, g.sw, g.bh, "<", pr == 1, 2);
     t_button(o, cv, g.cx, g.by, g.cw, g.bh, "FECHAR", pr == 2, 1);
@@ -1509,12 +1565,18 @@ void osd_render_canvas(Osd *o, uint32_t *px, int w, int h, uint32_t now_ms)
         /* faixa no alto (sem menu) ou embaixo (com menu), largura do texto */
         char a[OSD_TEXT_MAX * 2];
         to_ascii(o->toast, a, sizeof a);
-        int n = (int)strlen(a), maxn = w / 8 - 2;
-        if (n > maxn) n = maxn;
-        int tw = n * 8, x = (w - tw) / 2;
-        int y = o->mode == OSD_NONE ? (o->toast_top + 6 > 6 ? o->toast_top + 6 : 6) : h - 18;
-        fill_rect(&cv, x - 5, y - 4, tw + 10, 16, C_TOAST);
-        put_text(o, &cv, x, y, a, n, C_TITLE, 0, 0);
+        char *second = strchr(a, '\n');
+        if (second) *second++ = 0;
+        int maxn = w / 8 - 2;
+        int n1 = (int)strlen(a), n2 = second ? (int)strlen(second) : 0;
+        if (n1 > maxn) n1 = maxn;
+        if (n2 > maxn) n2 = maxn;
+        int tw = (n1 > n2 ? n1 : n2) * 8, x = (w - tw) / 2;
+        int bh = second ? 26 : 16;
+        int y = o->mode == OSD_NONE ? (o->toast_top + 6 > 6 ? o->toast_top + 6 : 6) : h - 8 - bh;
+        fill_rect(&cv, x - 5, y - 4, tw + 10, bh, C_TOAST);
+        put_text(o, &cv, (w - n1 * 8) / 2, y, a, n1, C_TITLE, 0, 0);
+        if (second) put_text(o, &cv, (w - n2 * 8) / 2, y + 10, second, n2, C_TITLE, 0, 0);
     }
 }
 

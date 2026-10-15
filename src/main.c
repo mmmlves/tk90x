@@ -22,6 +22,7 @@
 #include "osd.h"
 #include "platform.h"
 #include "png.h"
+#include "profiles.h"
 #include "snapshot.h"
 #include "tape.h"
 #include "touch.h"
@@ -31,7 +32,7 @@
 #endif
 
 #define APP_NAME     "TK90X/TK95"
-#define APP_VERSION  "1.0"
+#define APP_VERSION  "1.1"
 
 #define AUDIO_RATE   44100
 #define AUDIO_VOLUME 9000
@@ -41,6 +42,7 @@
 #define TAPQ_SIZE    256
 #define UNTIL_LOADED_CAP 200000L
 #define TOAST_MS     2500
+#define PROFILE_TOAST_MS 5000      /* aviso "Controles: ..." de um jogo com perfil */
 #define STATUS_MS    3000           /* status da fita visivel apos cada mudanca de bloco */
 #define LOAD_SPEED_DEFAULT 20       /* carga nostalgica: som e listras originais, 20x */
 #define LOAD_LP_HZ   7000.0         /* passa-baixa suave no som da fita durante a carga */
@@ -106,6 +108,9 @@ typedef struct App {
     uint8_t   rom[16384];
     int       hz60;
     char      file_name[PLAT_PATH_MAX];   /* nome base do arquivo atual */
+    const GameProfile *profile;           /* perfil de controle do jogo aberto (NULL = nenhum) */
+    JoyMode   user_joymode;               /* modo do usuario, restaurado quando o perfil sai */
+    int       profile_toast;              /* mostrar "Controles: ..." quando a carga terminar */
 
     /* Teclado */
     HeldKey   held[SDL_NUM_SCANCODES];
@@ -172,6 +177,7 @@ typedef struct App {
     SDL_TouchID osd_ptr_dev;
     SDL_FingerID osd_ptr_id;
     int       bg_paused;                  /* app em segundo plano (Android) */
+    int       diag;                       /* diagnostico: estado do joystick no canto */
     char      save_dir[PLAT_PATH_MAX];    /* snapshots e capturas ("" = diretorio atual) */
 
     /* --touch-script */
@@ -252,7 +258,8 @@ static const char *usage_text =
     "  --load-speed N         carga: N vezes (padrao 20: som e listras originais),\n"
     "                         1 = tempo real, 0 = maxima\n"
     "  --org END --exec END   para .bin/.cod (padrao org 32768 ou o do +3DOS, exec = org)\n"
-    "  --joystick kempston|sinclair1|sinclair2|cursor  (padrao sinclair1)\n"
+    "  --joystick kempston|sinclair1|sinclair2|cursor|qaop|keys  (padrao sinclair1;\n"
+    "                         os jogos conhecidos escolhem o seu ao abrir)\n"
     "  --no-contention        desliga a contencao de memoria da ULA (padrao: ligada)\n"
     "  --no-sound             sem som\n"
     "  --headless             sem janela/audio (testes)\n"
@@ -360,7 +367,10 @@ static void parse_args(Options *o, int argc, char **argv)
             else if (!plat_strcasecmp(v, "sinclair2")) o->joymode = JOYMODE_SINCLAIR2;
             else if (!plat_strcasecmp(v, "cursor") || !plat_strcasecmp(v, "protek"))
                 o->joymode = JOYMODE_CURSOR;
-            else fatal("joystick desconhecido '%s' (kempston, sinclair1, sinclair2, cursor)", v);
+            else if (!plat_strcasecmp(v, "qaop")) o->joymode = JOYMODE_QAOP;
+            else if (!plat_strcasecmp(v, "keys") || !plat_strcasecmp(v, "jogo"))
+                o->joymode = JOYMODE_KEYS;
+            else fatal("joystick desconhecido '%s' (kempston, sinclair1, sinclair2, cursor, qaop, keys)", v);
         } else if (!strcmp(a, "--contention")) {
             o->contention = 1;
         } else if (!strcmp(a, "--no-contention")) {
@@ -407,6 +417,8 @@ static const char *joymode_short(JoyMode j)
     case JOYMODE_SINCLAIR1: return "Sinclair 1";
     case JOYMODE_SINCLAIR2: return "Sinclair 2";
     case JOYMODE_CURSOR:    return "Cursor";
+    case JOYMODE_QAOP:      return "Teclas QAOP";
+    case JOYMODE_KEYS:      return "Teclas do jogo";
     default:                return "?";
     }
 }
@@ -418,6 +430,8 @@ static const char *joymode_name(JoyMode j)
     case JOYMODE_SINCLAIR1: return "Sinclair 1 (6-0, embutido)";
     case JOYMODE_SINCLAIR2: return "Sinclair 2 (1-5)";
     case JOYMODE_CURSOR:    return "Cursor (5-8, 0)";
+    case JOYMODE_QAOP:      return "Teclas QAOP (espaco = fogo)";
+    case JOYMODE_KEYS:      return "Teclas do jogo";
     default:                return "?";
     }
 }
@@ -537,7 +551,16 @@ static void keys_after_frame(App *a)
     }
 }
 
+static void release_all_keep(App *a, int keep_joy);
+
 static void release_all(App *a)
+{
+    release_all_keep(a, 0);
+}
+
+/* Solta tudo; keep_joy = 1 mantem o polegar que segura o joystick de toque
+ * (abrir o menu ou o teclado com outro dedo) */
+static void release_all_keep(App *a, int keep_joy)
 {
     memset(a->held, 0, sizeof a->held);
     memset(a->phys, 0, sizeof a->phys);
@@ -551,7 +574,10 @@ static void release_all(App *a)
         a->tap_phase = 0;
     }
     a->any_unseen = 0;
-    if (a->touch) touch_release_all(a->touch);
+    if (a->touch) {
+        if (keep_joy) touch_release_keep_joy(a->touch);
+        else touch_release_all(a->touch);
+    }
     machine_release_all_keys(a->m);
     memset(a->applied, 0, sizeof a->applied);
     machine_joy(a->m, 0);
@@ -840,6 +866,17 @@ static void emu_frame(App *a)
 /* Arquivos, snapshot, captura                                         */
 /* ------------------------------------------------------------------ */
 
+static void toast_ms(App *a, Uint32 ms, const char *fmt, ...)
+{
+    char msg[OSD_TEXT_MAX];
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(msg, sizeof msg, fmt, ap);
+    va_end(ap);
+    if (g_headless) fprintf(stderr, "%s\n", msg);
+    else osd_toast(&a->osd, SDL_GetTicks(), ms, msg);
+}
+
 static void toast(App *a, const char *fmt, ...)
 {
     char msg[OSD_TEXT_MAX];
@@ -849,6 +886,72 @@ static void toast(App *a, const char *fmt, ...)
     va_end(ap);
     if (g_headless) fprintf(stderr, "%s\n", msg);
     else osd_toast(&a->osd, SDL_GetTicks(), TOAST_MS, msg);
+}
+
+/* ---------------- Perfis de controle (profiles.h) ----------------
+ * Abrir um jogo conhecido (CRC32 do arquivo) troca o joystick da sessao para o
+ * modo que funciona com os controles padrao dele (Q A O P, teclas do jogo,
+ * Cursor ou o Sinclair do TK) e mostra "Controles: ..." quando a carga
+ * termina. Abrir outro arquivo sem perfil (ou trocar de modelo, que tira a
+ * fita) devolve o modo que o usuario tinha antes. */
+
+/* Modo que vale sem perfil: "teclas do jogo" so existe com um perfil */
+static JoyMode plain_mode(JoyMode j)
+{
+    return j == JOYMODE_KEYS ? JOYMODE_SINCLAIR1 : j;
+}
+
+/* Troca o modo do joystick; o estado e reenviado no proximo quadro */
+static void set_joymode(App *a, JoyMode j)
+{
+    machine_joy(a->m, 0);
+    a->m->cfg.joymode = j;
+    a->last_joy = 0xFF;
+}
+
+/* "Controles: <resumo>" e a dica para comecar (menus, ajuda e aviso) */
+static void profile_lines(const App *a, char *l1, size_t n1, char *l2, size_t n2)
+{
+    const GameProfile *p = a->profile;
+    l1[0] = l2[0] = 0;
+    if (!p) return;
+    snprintf(l1, n1, "Controles: %s", p->summary);
+    if (p->hint) snprintf(l2, n2, "%s", p->hint);
+}
+
+static void profile_toast_now(App *a, Uint32 ms)
+{
+    char l1[OSD_TEXT_MAX], l2[OSD_TEXT_MAX];
+    profile_lines(a, l1, sizeof l1, l2, sizeof l2);
+    if (!l1[0]) return;
+    if (l2[0]) toast_ms(a, ms, "%s\n%s", l1, l2);
+    else toast_ms(a, ms, "%s", l1);
+}
+
+static void apply_profile(App *a, const GameProfile *p)
+{
+    Machine *m = a->m;
+    if (p) {
+        if (!a->profile) a->user_joymode = m->cfg.joymode;
+        a->profile = p;
+        machine_set_joy_keys(m, &p->keys);
+        set_joymode(a, p->mode);
+        a->profile_toast = 1;           /* quando a carga terminar (profile_tick) */
+    } else if (a->profile) {
+        a->profile = NULL;
+        a->profile_toast = 0;
+        machine_set_joy_keys(m, NULL);
+        set_joymode(a, plain_mode(a->user_joymode));
+    }
+}
+
+/* Depois de cada passo: carga terminada -> aviso dos controles */
+static void profile_tick(App *a)
+{
+    if (!a->profile_toast || !a->profile) return;
+    if (a->m->autotype.active || is_loading(a)) return;
+    a->profile_toast = 0;
+    profile_toast_now(a, PROFILE_TOAST_MS);
 }
 
 static int open_file(App *a, const char *path)
@@ -862,6 +965,7 @@ static int open_file(App *a, const char *path)
     }
     copy_str(a->file_name, sizeof a->file_name, plat_basename(path));
     osd_browser_remember(&a->osd, path);
+    apply_profile(a, profile_for_file(path));
     a->auto_suppressed = 0;
     a->npend = 0;
     a->tap_count = a->tap_head = a->tap_phase = 0;
@@ -923,7 +1027,7 @@ static MachineConfig base_config(const App *a, Model model)
     c.model = model;
     c.hz60 = a->hz60;
     c.issue2 = 1;           /* TK: EAR (bit 6 da porta FE) em repouso le 1 */
-    c.joymode = a->opt.joymode;
+    c.joymode = plain_mode(a->opt.joymode);
     c.flash_load = a->opt.flash;
     c.no_contention = !a->opt.contention;
     return c;
@@ -939,6 +1043,11 @@ static void cycle_model(App *a)
     Model next = order[(cur + 1) % 3];
     MachineConfig c = a->m->cfg;
     c.model = next;
+    if (a->profile) {           /* a fita sai, o perfil tambem: volta o modo do usuario */
+        c.joymode = plain_mode(a->user_joymode);
+        a->profile = NULL;
+        a->profile_toast = 0;
+    }
     model_rom(next, a->rom);
     machine_free(a->m);
     memset(a->m, 0, sizeof *a->m);
@@ -1026,6 +1135,7 @@ static int run_headless(App *a)
         a->stat_shown++;
         long ran = (long)(a->stat_frames - before);
         f += ran;
+        profile_tick(a);
         if (a->opt.until_loaded) {
             int busy = m->autotype.active || is_loading(a) || typing_busy(a)
                        || !(m->rom_ready || f >= 300);
@@ -1095,6 +1205,11 @@ static void update_info(App *a)
                  a->hz60 ? 60 : 50, joymode_short(a->m->cfg.joymode),
                  a->arrows_mode == ARROWS_AUTO ? "auto" : a->arrows_mode == ARROWS_JOY ? "joy" : "cur");
     osd_set_info(&a->osd, t);
+    {
+        char l1[OSD_TEXT_MAX], l2[OSD_TEXT_MAX];
+        profile_lines(a, l1, sizeof l1, l2, sizeof l2);
+        osd_set_controls(&a->osd, l1, l2);
+    }
 
     /* segunda linha: fita (progresso tambem fica aqui, ja que o status some) */
     const Machine *m = a->m;
@@ -1445,12 +1560,16 @@ static void function_key(App *a, SDL_Keycode k)
         toast(a, a->hz60 ? "60 Hz (PAL-M)" : "50 Hz");
         break;
     case SDLK_F9: {
-        machine_joy(m, 0);
-        a->last_joy = 0;
-        m->cfg.joymode = (JoyMode)((m->cfg.joymode + 1) % JOYMODE_COUNT);
-        a->opt.joymode = m->cfg.joymode;
-        a->last_joy = 0xFF;     /* reenvia o estado */
-        toast(a, "Joystick: %s", joymode_name(m->cfg.joymode));
+        /* "Teclas do jogo" so com um perfil que as tenha. Com perfil, a troca
+         * vale para a sessao; o modo do usuario volta ao abrir outro arquivo. */
+        JoyMode j = m->cfg.joymode;
+        do j = (JoyMode)((j + 1) % JOYMODE_COUNT);
+        while (j == JOYMODE_KEYS && !profile_has_keys(a->profile));
+        set_joymode(a, j);
+        if (!a->profile) a->opt.joymode = j;
+        if (j == JOYMODE_KEYS) toast(a, "Joystick: teclas do jogo (%s)", a->profile->summary);
+        else toast(a, "Joystick: %s", joymode_name(j));
+        update_info(a);
         break;
     }
     case SDLK_F10:
@@ -1477,7 +1596,7 @@ static int is_function_key(SDL_Keycode k)
 /* ------------------------------------------------------------------ */
 
 enum { MI_OPEN = 1, MI_TAPE, MI_REWIND, MI_RESET, MI_TURBO, MI_SNAP, MI_SHOT, MI_MODEL,
-       MI_HZ, MI_JOY, MI_ARROWS, MI_FULL, MI_HELP, MI_QUIT };
+       MI_HZ, MI_JOY, MI_ARROWS, MI_FULL, MI_DIAG, MI_HELP, MI_QUIT };
 
 /* Itens na ordem do menu; key = tecla de funcao que faz o mesmo (tambem
  * funciona com o menu aberto); gap = linha em branco antes */
@@ -1499,6 +1618,7 @@ static const struct MenuDef {
     { MI_JOY,    SDLK_F9,  "F9",  "Joystick",            0 },
     { MI_ARROWS, SDLK_F4,  "F4",  "Setas",               0 },
     { MI_FULL,   SDLK_F11, "F11", "Tela cheia",          0 },
+    { MI_DIAG,   0,        "",    "Diagnostico",         0 },
     { MI_HELP,   0,        "",    "Ajuda",               1 },
     { MI_QUIT,   0,        "",    "Sair",                0 },
 };
@@ -1536,6 +1656,7 @@ static void menu_build(App *a)
         case MI_JOY:    v = joymode_short(m->cfg.joymode); break;
         case MI_ARROWS: v = arrows_name(a->arrows_mode); break;
         case MI_FULL:   v = a->fullscreen ? "sim" : "nao"; break;
+        case MI_DIAG:   v = a->diag ? "ligado" : "desligado"; break;
         default: break;
         }
         copy_str(o->value, sizeof o->value, v);
@@ -1574,6 +1695,10 @@ static void menu_activate(App *a, int id)
     case MI_JOY:    function_key(a, SDLK_F9); break;
     case MI_ARROWS: function_key(a, SDLK_F4); break;
     case MI_FULL:   function_key(a, SDLK_F11); break;
+    case MI_DIAG:
+        a->diag = !a->diag;
+        toast(a, a->diag ? "Diagnostico: JOY = bits do joystick" : "Diagnostico desligado");
+        break;
     case MI_HELP:   osd_open_help(&a->osd, 1); return;
     case MI_QUIT:   osd_open_quit(&a->osd); return;
     default: return;
@@ -1623,11 +1748,11 @@ static void quick_load(App *a)
 static void touch_action(App *a, int act)
 {
     switch (act) {
-    case TOUCH_ACT_MENU:       release_all(a); update_info(a); break;
+    case TOUCH_ACT_MENU:       release_all_keep(a, 1); update_info(a); break;
     case TOUCH_ACT_OPEN_FILE:  open_browser(a); break;
     case TOUCH_ACT_PICKER:     open_picker(a); break;
     case TOUCH_ACT_RESET:      function_key(a, SDLK_F5); break;
-    case TOUCH_ACT_TOGGLE_KBD: release_all(a); break;
+    case TOUCH_ACT_TOGGLE_KBD: release_all_keep(a, 1); break;
     case TOUCH_ACT_TURBO:      function_key(a, SDLK_F7); break;
     case TOUCH_ACT_SNAPSHOT:   function_key(a, SDLK_F6); break;
     case TOUCH_ACT_SCREENSHOT: function_key(a, SDLK_F12); break;
@@ -1639,6 +1764,7 @@ static void touch_action(App *a, int act)
     case TOUCH_ACT_QUIT:       release_all(a); osd_open_quit(&a->osd); break;
     case TOUCH_ACT_LOAD:       quick_load(a); break;
     case TOUCH_ACT_REWIND:     menu_activate(a, MI_REWIND); break;
+    case TOUCH_ACT_DIAG:       menu_activate(a, MI_DIAG); break;
     default: break;
     }
 }
@@ -1655,6 +1781,10 @@ static void touch_update_menu(App *a)
     const char *tape = "sem fita";
     if (m->tape && tape_is_loaded(m->tape)) tape = tape_is_playing(m->tape) ? "tocando" : "parada";
     touch_set_menu_item(t, TOUCH_ACT_TAPE, 1, tape);
+    touch_set_menu_item(t, TOUCH_ACT_DIAG, 1, a->diag ? "ligado" : "desligado");
+    char l1[OSD_TEXT_MAX], l2[OSD_TEXT_MAX];
+    profile_lines(a, l1, sizeof l1, l2, sizeof l2);
+    touch_set_menu_note(t, l1);
     char lbl[32];
     copy_str(lbl, sizeof lbl, joymode_short(m->cfg.joymode));
     for (char *c = lbl; *c; c++)
@@ -1743,7 +1873,9 @@ static void pause_app(App *a, int on)
 {
     if (a->bg_paused == on) return;
     a->bg_paused = on;
-    release_all(a);
+    /* so ao pausar: ao voltar, um dedo que ainda esta na tela (o SDL nao manda
+     * outro FINGERDOWN para ele) continua valendo */
+    if (on) release_all(a);
     if (a->audio) {
         SDL_PauseAudioDevice(a->audio, on);
         if (on) SDL_ClearQueuedAudio(a->audio);
@@ -1881,7 +2013,7 @@ static void script_print(App *a, const char *text)
 {
     const Machine *m = a->m;
     printf("script tick=%lu frame=%lu osd=%d menu=%d kbd=%d keys=%02X%02X%02X%02X%02X%02X%02X%02X "
-           "joy=%02X joymode=%s arrows=%s editor=%d tape=%s pc=%04X %s\n",
+           "joy=%02X joymode=%s arrows=%s editor=%d tape=%s pc=%04X perfil=%s %s\n",
            a->tick, (unsigned long)m->frame_count, (int)a->osd.mode,
            a->touch ? touch_menu_open(a->touch) : 0, a->touch ? touch_keyboard_visible(a->touch) : 0,
            m->key_rows[0], m->key_rows[1], m->key_rows[2], m->key_rows[3], m->key_rows[4],
@@ -1889,7 +2021,7 @@ static void script_print(App *a, const char *text)
            joymode_short(m->cfg.joymode), arrows_name(a->arrows_mode),
            machine_editor_active(m, EDITOR_FRAMES),
            m->tape && tape_is_loaded(m->tape) ? (tape_is_playing(m->tape) ? "play" : "stop") : "none",
-           m->cpu.pc, text);
+           m->cpu.pc, a->profile ? a->profile->name : "-", text);
     fflush(stdout);
 }
 
@@ -2160,7 +2292,9 @@ static void handle_event(App *a, const SDL_Event *e)
         if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) release_all(a);
 #ifdef __ANDROID__
         /* Android: sem foco (outro app, aviso do sistema) a emulacao pausa */
-        if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) pause_app(a, 1);
+        /* em tela dividida o app continua visivel: so o segundo plano pausa */
+        if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST && !android_in_multiwindow())
+            pause_app(a, 1);
         else if (e->window.event == SDL_WINDOWEVENT_FOCUS_GAINED) pause_app(a, 0);
 #endif
         break;
@@ -2342,6 +2476,14 @@ static void render(App *a)
     Uint32 now = SDL_GetTicks();
     memcpy(a->disp, a->m->fb, sizeof a->disp);
     make_status(a);
+    if (a->diag) {
+        /* bits do joystick que chegam a maquina (000FUDLR) e o modo */
+        char d[32];
+        snprintf(d, sizeof d, "JOY:%02X %s", a->m->joy_state, joymode_short(a->m->cfg.joymode));
+        osd_set_diag(&a->osd, d);
+    } else {
+        osd_set_diag(&a->osd, NULL);
+    }
     osd_render(&a->osd, a->disp, now);
     SDL_UpdateTexture(a->tex, NULL, a->disp, FB_W * 4);
     SDL_SetRenderDrawColor(a->ren, 0, 0, 0, 255);
@@ -2563,6 +2705,7 @@ static int run_gui(App *a)
             else if (q > 4.0) adj = 1.005;
         }
         turbo = emu_step(a, 5000);
+        profile_tick(a);
         next += (Uint64)(period * adj);
         /* atrasado: roda ate 3 quadros extras sem exibir; muito atrasado: ressincroniza
          * (nao na carga nostalgica: cada passo ja tem N quadros e orcamento de tempo) */
@@ -2726,6 +2869,7 @@ int main(int argc, char *argv[])
     a->m->tape_sound = 1;       /* ouve-se a fita durante a carga, como no aparelho */
     osd_init(&a->osd, a->rom);
     a->last_joy = 0;
+    a->user_joymode = a->m->cfg.joymode;
 
     if (a->opt.file) {
         if (open_file(a, a->opt.file) != 0 && a->opt.headless) return 1;

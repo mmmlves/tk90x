@@ -32,6 +32,7 @@ em **C99 + SDL2**, um mesmo codigo para **Linux** e **Windows**.
 | `src/tape.h/.c` | TAP e TZX 1.20 -> sequencia de pulsos (EAR). Suporte a flash load. |
 | `src/snapshot.h/.c` | SNA/Z80 (ler/gravar) + fita virtual (snapshot, .bin, .scr -> TAP). |
 | `src/machine.h/.c` | ULA, memoria, portas, teclado, joystick, video, audio, armadilhas, autotype, `machine_open_file`. |
+| `src/profiles.h/.c` | Perfis de controle dos jogos de `games/` (CRC32 do arquivo -> modo do joystick, teclas do `JOYMODE_KEYS`, resumo e dica para comecar). |
 | `src/png.h/.c` | Gravador PNG minimo (zlib "stored" + CRC + Adler) para capturas de tela. |
 | `src/platform.h/.c` | Listagem de diretorio portavel (dirent / FindFirstFile), caminho do executavel, separadores. |
 | `src/osd.h/.c` | Texto sobreposto usando a fonte da propria ROM (0x3D00): barra de status, menu principal (F1, itens montados por main.c), ajuda em 6 paginas (versoes desktop e toque), navegador de arquivos, mouse no layout classico (`osd_mouse`). |
@@ -61,7 +62,7 @@ tk90x [opcoes] [arquivo]
   --flash                 carga instantanea por armadilha na ROM
   --load-speed N          velocidade durante a carga: N vezes (padrao 20), 1 = tempo real, 0 = maxima
   --org ENDERECO --exec ENDERECO   para .bin/.cod (padrao org 32768, exec = org)
-  --joystick kempston|sinclair1|sinclair2|cursor
+  --joystick kempston|sinclair1|sinclair2|cursor|qaop|keys
   --no-contention         desliga a contencao de memoria da ULA (padrao: ligada)
   --no-sound
   --headless              sem janela/audio (SDL dummy) - para testes
@@ -141,3 +142,13 @@ Tempos de carga dos jogos de `games/` no README.
 | Arrastar arquivo para a janela | abre o arquivo (carga "original") |
 
 Controles de jogo (SDL GameController) sao o joystick do modo escolhido.
+
+## Joystick e perfis
+
+`machine.c` (`key_row`) junta o joystick a matriz do teclado pela tabela do modo
+(`machine_joy_keys_of`): Sinclair 1 (6-0), Sinclair 2 (1-5), Cursor (5-8, 0), QAOP (Q A O P
+SPACE) e KEYS (ate 2 teclas por bit, `machine_set_joy_keys`); o Kempston responde na porta 31.
+`main.c` (`open_file`) calcula o CRC32 do arquivo aberto e, se `profiles.c` o conhece, troca o
+modo so na sessao (o do usuario volta ao abrir outro arquivo ou trocar de modelo) e mostra
+"Controles: ..." quando a carga termina (`profile_tick`). O resumo vai para o menu (linha 4 do
+menu do F1, titulo do menu de toque) e para a pagina 5 da ajuda (`osd_set_controls`).

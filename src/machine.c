@@ -350,42 +350,52 @@ static uint8_t floating_bus(const Machine *m, uint32_t t)
     }
 }
 
-/* Linhas do teclado vistas pela ULA (teclado fisico + autotype + joystick). */
+/* Teclas apertadas por cada bit do joystick nos modos de teclado (indice =
+ * posicao do bit JOY_*: direita, esquerda, baixo, cima, fogo). */
+#define NK ZXK_COUNT
+static const JoyKeys joy_tab_sinclair1 = { {   /* embutido no TK: 6 esq, 7 dir, 8 baixo, 9 cima, 0 fogo */
+    { ZXK_7, NK }, { ZXK_6, NK }, { ZXK_8, NK }, { ZXK_9, NK }, { ZXK_0, NK } } };
+static const JoyKeys joy_tab_sinclair2 = { {   /* 1 esq, 2 dir, 3 baixo, 4 cima, 5 fogo */
+    { ZXK_2, NK }, { ZXK_1, NK }, { ZXK_3, NK }, { ZXK_4, NK }, { ZXK_5, NK } } };
+static const JoyKeys joy_tab_cursor = { {      /* 5 esq, 6 baixo, 7 cima, 8 dir, 0 fogo */
+    { ZXK_8, NK }, { ZXK_5, NK }, { ZXK_6, NK }, { ZXK_7, NK }, { ZXK_0, NK } } };
+static const JoyKeys joy_tab_qaop = { {        /* Q cima, A baixo, O esq, P dir, SPACE fogo */
+    { ZXK_P, NK }, { ZXK_O, NK }, { ZXK_A, NK }, { ZXK_Q, NK }, { ZXK_SPACE, NK } } };
+static const JoyKeys joy_tab_none = { {
+    { NK, NK }, { NK, NK }, { NK, NK }, { NK, NK }, { NK, NK } } };
+
+static const JoyKeys *joy_tab(const Machine *m, JoyMode mode)
+{
+    switch (mode) {
+    case JOYMODE_SINCLAIR1: return &joy_tab_sinclair1;
+    case JOYMODE_SINCLAIR2: return &joy_tab_sinclair2;
+    case JOYMODE_CURSOR:    return &joy_tab_cursor;
+    case JOYMODE_QAOP:      return &joy_tab_qaop;
+    case JOYMODE_KEYS:      return &m->joy_keys;
+    default:                return &joy_tab_none;   /* Kempston: porta 31 */
+    }
+}
+
+void machine_joy_keys_of(const Machine *m, JoyMode mode, JoyKeys *out)
+{
+    *out = *joy_tab(m, mode);
+}
+
+/* Linhas do teclado vistas pela ULA (teclado fisico + autotype + joystick).
+ * Nos modos de teclado o joystick aperta as teclas do modo, juntas ao
+ * teclado (como no aparelho, onde o conector do TK liga o joystick na matriz). */
 static uint8_t key_row(const Machine *m, int row)
 {
     uint8_t v = (uint8_t)(m->key_rows[row] & m->auto_rows[row]);
     uint8_t j = m->joy_state;
-    if (!j) return v;
-    switch (m->cfg.joymode) {
-    case JOYMODE_SINCLAIR1:   /* EFFE: bit0 fogo(0) 1 cima(9) 2 baixo(8) 3 dir(7) 4 esq(6) */
-        if (row == 4) {
-            if (j & JOY_FIRE)  v &= (uint8_t)~0x01;
-            if (j & JOY_UP)    v &= (uint8_t)~0x02;
-            if (j & JOY_DOWN)  v &= (uint8_t)~0x04;
-            if (j & JOY_RIGHT) v &= (uint8_t)~0x08;
-            if (j & JOY_LEFT)  v &= (uint8_t)~0x10;
+    if (!j || m->cfg.joymode == JOYMODE_KEMPSTON) return v;
+    const JoyKeys *t = joy_tab(m, m->cfg.joymode);
+    for (int b = 0; b < JOYKEYS_DIRS; b++) {
+        if (!(j & (1u << b))) continue;
+        for (int i = 0; i < 2; i++) {
+            int k = t->key[b][i];
+            if (k < ZXK_COUNT && k / 5 == row) v &= (uint8_t)~(1u << (k % 5));
         }
-        break;
-    case JOYMODE_SINCLAIR2:   /* F7FE: bit0 esq(1) 1 dir(2) 2 baixo(3) 3 cima(4) 4 fogo(5) */
-        if (row == 3) {
-            if (j & JOY_LEFT)  v &= (uint8_t)~0x01;
-            if (j & JOY_RIGHT) v &= (uint8_t)~0x02;
-            if (j & JOY_DOWN)  v &= (uint8_t)~0x04;
-            if (j & JOY_UP)    v &= (uint8_t)~0x08;
-            if (j & JOY_FIRE)  v &= (uint8_t)~0x10;
-        }
-        break;
-    case JOYMODE_CURSOR:      /* 5 esq (F7FE b4); 6 baixo, 7 cima, 8 dir, 0 fogo (EFFE b4,b3,b2,b0) */
-        if (row == 3 && (j & JOY_LEFT)) v &= (uint8_t)~0x10;
-        if (row == 4) {
-            if (j & JOY_DOWN)  v &= (uint8_t)~0x10;
-            if (j & JOY_UP)    v &= (uint8_t)~0x08;
-            if (j & JOY_RIGHT) v &= (uint8_t)~0x04;
-            if (j & JOY_FIRE)  v &= (uint8_t)~0x01;
-        }
-        break;
-    default:
-        break;
     }
     return v;
 }
@@ -487,6 +497,7 @@ int machine_init(Machine *m, const uint8_t *rom, const MachineConfig *cfg)
     bus.out = bus_out;
     z80_init(&m->cpu, &bus);
 
+    m->joy_keys = joy_tab_none;
     m->tape = tape_new();
     if (!m->tape) return -1;
     tape_set_cpu_hz(m->tape, TK_CPU_HZ);
@@ -571,6 +582,14 @@ void machine_key(Machine *m, ZXKey k, int pressed)
 void machine_joy(Machine *m, uint8_t joy_bits)
 {
     m->joy_state = joy_bits & 0x1F;
+}
+
+void machine_set_joy_keys(Machine *m, const JoyKeys *k)
+{
+    m->joy_keys = k ? *k : joy_tab_none;
+    for (int b = 0; b < JOYKEYS_DIRS; b++)
+        for (int i = 0; i < 2; i++)
+            if (m->joy_keys.key[b][i] > ZXK_COUNT) m->joy_keys.key[b][i] = ZXK_COUNT;
 }
 
 int machine_editor_active(const Machine *m, uint32_t frames)

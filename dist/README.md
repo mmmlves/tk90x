@@ -43,6 +43,9 @@ Requer Windows 10 ou 11 de 64 bits (no Windows 7/8.1 é preciso a atualização 
 Controles na tela: joystick à esquerda, **FOGO** à direita, **TECLADO** abre o teclado do TK,
 **LOAD ""** carrega a fita, **MENU** tem reset, modelo, 50/60 Hz, joystick e **Ajuda**.
 O botão Voltar fecha menus; apertado de novo, pergunta se quer sair.
+Os jogos incluídos já abrem com o joystick certo e mostram `Controles: ...` e como começar
+(por exemplo, `TECLADO > 1 para jogar`); em outros jogos, escolha em **MENU > Joystick** o mesmo
+controle do menu do jogo. A versão 1.1 instala por cima da 1.0.
 Para abrir outros jogos: **MENU > Abrir do aparelho**, ou toque num `.tap`/`.tzx` no gerenciador
 de arquivos e escolha **TK90X**. Detalhes em [docs/ANDROID.md](../docs/ANDROID.md).
 

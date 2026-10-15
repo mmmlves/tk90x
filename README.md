@@ -40,8 +40,13 @@ de 3 a 5 minutos de fita carrega em 9 a 15 segundos.
     padrão (armadilha na rotina LD-BYTES da ROM).
 - **Temporização medida no TK90X real**: 3,575611 MHz, 228 T-states por linha, 50 Hz
   (312 linhas) ou 60 Hz PAL-M (262 linhas), com troca em tempo real (F8).
-- Joystick embutido do TK (Sinclair 1, teclas 6-0), além de Kempston, Sinclair 2 e Cursor.
-  Controles USB (SDL GameController) funcionam direto.
+- Joystick embutido do TK (Sinclair 1, teclas 6-0), além de Kempston, Sinclair 2, Cursor,
+  **Teclas QAOP** (Q, A, O, P e espaço) e **Teclas do jogo**. Controles USB (SDL
+  GameController) funcionam direto.
+- **Controles prontos para os jogos de `games/`**: ao abrir um jogo conhecido (reconhecido pelo
+  CRC32 do arquivo), o emulador escolhe o joystick que funciona com os controles *padrão* dele,
+  sem mexer no menu do jogo, e avisa `Controles: ...` quando a carga termina, com a dica de como
+  começar (veja [Joystick e perfis dos jogos](#joystick-e-perfis-dos-jogos)).
 - **Setas automáticas**: num jogo, as setas do PC são o joystick escolhido (Alt = fogo); no
   BASIC, com o cursor piscando, movem o cursor de edição. F4 troca para "sempre joystick" ou
   "sempre cursores".
@@ -121,7 +126,7 @@ boot, digita `LOAD ""` e carrega o programa.
 | `--flash` | carga instantânea dos blocos padrão (armadilha na ROM) |
 | `--load-speed N` | velocidade durante a carga: N vezes (padrão 20, a carga nostálgica), 1 = tempo real, 0 = máxima |
 | `--org END`, `--exec END` | endereço de carga e de execução de `.bin`/`.cod` (padrão 32768, ou o do cabeçalho +3DOS; exec = org). Aceita `0x8000`, `$8000`, `8000h` |
-| `--joystick kempston\|sinclair1\|sinclair2\|cursor` | modo do joystick (padrão `sinclair1`, o conector embutido do TK) |
+| `--joystick kempston\|sinclair1\|sinclair2\|cursor\|qaop\|keys` | modo do joystick (padrão `sinclair1`, o conector embutido do TK). `keys` (teclas do jogo) só existe com o perfil de um jogo conhecido; sem perfil vale o `sinclair1`. Um jogo conhecido troca o modo ao abrir |
 | `--no-contention` | desliga a contenção de memória da ULA (padrão: ligada, como no aparelho) |
 | `--no-sound` | sem som |
 | `--headless` | sem janela nem áudio (testes) |
@@ -183,7 +188,7 @@ Com `--load-speed 0` (ou F7 durante a carga) qualquer um carrega em 2 a 4 segund
 | Home / Insert / End | EDIT (CAPS+1) / GRAPHICS (CAPS+9) / BREAK (CAPS+SPACE) |
 | PgUp / PgDn | TRUE VIDEO (CAPS+3) / INV. VIDEO (CAPS+4) |
 | Pontuação (`" , . ; : + - * / = < > ? ( ) $ ' _ ! @ # % & ^ ~ \| \ { } [ ]`) | digite normalmente, em qualquer layout. O emulador aperta SYMBOL+tecla (ou modo E + SYMBOL+tecla para `~ \| \ { } [ ]`) |
-| F1 | **menu** (abrir jogo, fita, reset, turbo, estado, captura, modelo, 50/60 Hz, joystick, setas, tela cheia, ajuda, sair) |
+| F1 | **menu** (abrir jogo, fita, reset, turbo, estado, captura, modelo, 50/60 Hz, joystick, setas, tela cheia, diagnóstico, ajuda, sair) |
 | F2 | abrir arquivo (navegador interno) |
 | F3 | play/pausa da fita (o `LOAD ""` já dá play sozinho) |
 | F4 | setas: automático → joystick → cursores (o aviso mostra o modo e o tipo de joystick) |
@@ -191,7 +196,7 @@ Com `--load-speed 0` (ou F7 durante a carga) qualquer um carrega em 2 a 4 segund
 | F6 | grava snapshot `tk90x-AAAAMMDD-HHMMSS.z80` no diretório atual (`-2`, `-3`... se já existir). Durante a carga da fita virtual de um snapshot, grava o snapshot sendo carregado |
 | F7 | turbo máximo liga/desliga. Durante a carga, alterna entre o máximo e a velocidade de `--load-speed` (20x, a carga nostálgica; com `--load-speed 0`, o F7 passa para 20x) |
 | F8 | alterna 50/60 Hz |
-| F9 | próximo modo de joystick |
+| F9 | próximo modo de joystick (Sinclair 1, Kempston, Sinclair 2, Cursor, Teclas QAOP e, com um jogo conhecido, Teclas do jogo) |
 | F10 | próximo modelo (TK95, TK90X, TK90X v1), com reset; tira a fita (abra o jogo de novo) |
 | F11 | tela cheia |
 | F12 | captura de tela `tk90x-AAAAMMDD-HHMMSS.png` (`-2`, `-3`... se já existir) |
@@ -214,7 +219,32 @@ isso o modo padrão é o **automático**:
 
 O F4 alterna entre automático, sempre joystick e sempre cursores (o modo atual aparece no menu,
 F1). Se um jogo não obedece às setas, troque o tipo de joystick no F9 ou use as teclas que o
-jogo pede (muitos usam Q, A, O, P e espaço).
+jogo pede (muitos usam Q, A, O, P e espaço: é o modo **Teclas QAOP**). Com um jogo conhecido,
+as setas já são o joystick do perfil dele (veja abaixo).
+
+### Joystick e perfis dos jogos
+
+O joystick (setas + Alt no PC, joystick e FOGO na tela de toque, controle USB) aperta as teclas
+do modo escolhido, juntas ao teclado, como o conector do TK fazia (só o Kempston usa a porta 31):
+
+| Modo (F9 / MENU > Joystick) | Teclas: cima, baixo, esquerda, direita, fogo |
+|---|---|
+| Sinclair 1 (padrão, o embutido do TK) | 9, 8, 6, 7, 0 |
+| Kempston | porta 31 (interface externa) |
+| Sinclair 2 | 4, 3, 1, 2, 5 |
+| Cursor (Protek, AGF) | 7, 6, 5, 8, 0 |
+| Teclas QAOP | Q, A, O, P, espaço |
+| Teclas do jogo | as do perfil do jogo aberto (até 2 teclas juntas por direção) |
+
+O modo tem de ser o que o jogo lê. A maioria dos jogos começa no **teclado** e só lê o joystick
+depois de escolhê-lo no menu dele; no celular, sem teclado, o joystick parecia morto. Por isso
+os jogos de `games/` têm **perfis** (`src/profiles.c`): ao abrir um deles, o emulador troca o
+joystick, só nesta sessão, para o modo que funciona com os controles padrão do jogo e, quando a
+carga termina, mostra por 5 segundos `Controles: <resumo>` e a dica para começar (por exemplo,
+`TECLADO > 1 para jogar`). O resumo também aparece no menu (F1 / MENU) e na página "Jogos e
+joystick" da ajuda. Abrir um arquivo sem perfil (ou trocar de modelo) devolve o modo de antes.
+O F9 continua trocando o modo à vontade; "Teclas do jogo" só aparece com um perfil que as tenha.
+Os controles de cada jogo estão em [`games/LEIAME.md`](games/LEIAME.md#controles).
 
 ### Menu e ajuda (F1)
 
@@ -247,8 +277,11 @@ ela, nada muda na janela.
   translúcidos.
 - **Joystick** (esquerda): arraste o polegar a partir do centro. São 8 direções, e o setor
   aceso mostra a direção atual. Ele age como o joystick do modo escolhido: Sinclair 1 (teclas 6 a
-  0, o conector do TK) por padrão, ou Kempston, Sinclair 2 e Cursor no MENU. O modo atual aparece
-  acima da base.
+  0, o conector do TK) por padrão, ou Kempston, Sinclair 2, Cursor, Teclas QAOP e Teclas do jogo
+  no MENU; os jogos de `games/` já abrem no modo certo e avisam `Controles: ...` (veja
+  [Joystick e perfis dos jogos](#joystick-e-perfis-dos-jogos)). O modo atual aparece acima da
+  base. A área de toque fica afastada das bordas, longe das faixas de gesto do Android, e um dedo
+  que continua na tela depois do menu, do teclado ou de voltar ao app volta a valer ao se mover.
 - **FOGO** (direita): o botão de tiro. O joystick e o FOGO funcionam juntos (multitoque).
 - **TECLADO** (alto, à direita): mostra ou esconde as 40 teclas do TK90X/TK95 nas 4 fileiras do
   aparelho (1-0, Q-P, A-ENTER, CAPS SHIFT-SPACE), com as palavras do modo K sob as letras (nomes do
@@ -267,7 +300,10 @@ ela, nada muda na janela.
   no gravador, abre o navegador de jogos.
 - **MENU**: abrir jogo, abrir do aparelho (seletor de arquivos do Android), fita play/pausa,
   rebobinar fita, reiniciar, turbo, salvar estado (`.z80`), captura de tela, 50/60 Hz, modelo,
-  joystick, ajuda e sair. A ajuda tem as mesmas 6 páginas do desktop, com o texto falando dos
+  joystick, diagnóstico, ajuda e sair. Com um jogo conhecido, o título do menu mostra os controles
+  dele. **Diagnóstico** liga no canto de cima da imagem `JOY:XX modo`, os bits do joystick que
+  chegam ao TK (000FUDLR: 01 direita, 02 esquerda, 04 baixo, 08 cima, 10 fogo); se o número muda
+  ao tocar, o toque chegou (no desktop, o item fica no menu do F1). A ajuda tem as mesmas 6 páginas do desktop, com o texto falando dos
   toques (MENU, TECLADO, FOGO); os botões `<` e `>` (ou um toque na metade esquerda/direita)
   trocam de página e FECHAR fecha. A emulação fica pausada enquanto o menu está aberto. Turbo, 50/60 Hz e joystick mostram o
   valor novo e deixam o menu aberto.
@@ -316,14 +352,15 @@ saem de:
 
 ```sh
 make android
-# build/android/tk90x-1.0-release.apk   <- o que se instala no celular
-# build/android/tk90x-1.0-debug.apk     <- depuração
+# build/android/tk90x-1.1-release.apk   <- o que se instala no celular
+# build/android/tk90x-1.1-debug.apk     <- depuração
 ```
 
 O kit de compilação (JDK, SDK, NDK, Gradle e SDL2) fica todo em `tools/android/`, sem instalar
 nada no sistema. Como instalar no celular, usar, compilar e depurar está em
-[`docs/ANDROID.md`](docs/ANDROID.md). O APK ainda não foi testado num aparelho de verdade (a
-máquina de build não tem KVM para o emulador do Android).
+[`docs/ANDROID.md`](docs/ANDROID.md). A versão 1.0 rodou num celular (os jogos abriam, mas o
+joystick parecia morto nos jogos que começam no teclado); a 1.1 traz os perfis dos jogos e
+instala por cima dela.
 
 ## Modelos e 50/60 Hz
 

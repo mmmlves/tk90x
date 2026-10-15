@@ -47,6 +47,7 @@ typedef enum {
     TOUCH_ACT_HELP,
     TOUCH_ACT_QUIT,
     TOUCH_ACT_REWIND,       /* rebobinar a fita (acrescentado no fim: "menu:N" dos scripts) */
+    TOUCH_ACT_DIAG,         /* liga/desliga o diagnostico (estado do joystick no canto) */
     TOUCH_ACT_COUNT
 } TouchAction;
 
@@ -82,6 +83,9 @@ uint8_t  touch_joy(const TouchUI *t);
 void touch_frame_done(TouchUI *t);
 /* Solta todos os dedos (menu aberto, perda de foco). */
 void touch_release_all(TouchUI *t);
+/* Idem, mas o dedo que segura o joystick continua (abrir o menu ou o teclado
+ * com outro dedo nao "solta" o polegar). */
+void touch_release_keep_joy(TouchUI *t);
 
 /* Menu de toque */
 int  touch_menu_open(const TouchUI *t);
@@ -95,6 +99,9 @@ void touch_show_keyboard(TouchUI *t, int on);
 
 /* Altura ocupada no alto pelos botoes em fila (0 se estao na margem direita). */
 int  touch_top_height(const TouchUI *t);
+
+/* Linha no titulo do menu de toque (controles do jogo aberto; NULL/"" = nada). */
+void touch_set_menu_note(TouchUI *t, const char *note);
 
 /* Rotulo sob o joystick (modo atual, ex.: "SINCLAIR 1"). */
 void touch_set_joy_label(TouchUI *t, const char *label);

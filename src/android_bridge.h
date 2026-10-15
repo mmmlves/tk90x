@@ -44,12 +44,17 @@ const char *android_games_dir(void);
 /* 1 = mantem a tela ligada (padrao enquanto o app roda); 0 = deixa apagar. */
 void android_keep_screen_on(int on);
 
+/* 1 se o app esta em tela dividida / janela flutuante (Android 7+): ai perder o
+ * foco nao pausa a emulacao (o outro app tocado continua com o TK90X visivel). */
+int  android_in_multiwindow(void);
+
 #else  /* desktop: nada a fazer */
 
 static inline void android_open_picker(void) { }
 static inline int  android_poll_picked(char *path, size_t n) { (void)path; (void)n; return 0; }
 static inline const char *android_games_dir(void) { return NULL; }
 static inline void android_keep_screen_on(int on) { (void)on; }
+static inline int  android_in_multiwindow(void) { return 0; }
 
 #endif
 

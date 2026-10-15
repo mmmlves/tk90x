@@ -123,8 +123,9 @@ Nenhuma das alternativas foi desenvolvida por nós: todas são jogos de terceiro
   preciso juntar as peças do monstro, na ordem, desviando de inimigos com rota fixa. Um cronômetro
   faz o papel do ar de Manic Miner, e há gelo, molas, postes e teletransportes. A análise da RGCD
   (2011) o põe na linhagem Miner 2049er / Manic Miner.
-- **Controles:** o menu oferece teclado, Kempston, Protek/Cursor e **Sinclair ZX2** (o joystick
-  embutido do TK90X).
+- **Controles:** o menu oferece teclado (já escolhido: Z esquerda, X direita, M ativa/pula),
+  Kempston, Protek/Cursor e **Sinclair ZX2**. O perfil do emulador usa as teclas do jogo (veja
+  [Controles](#controles)).
 
 ### 03 — Jet Set Willy → *Lala Prologue*
 
@@ -163,8 +164,8 @@ Nenhuma das alternativas foi desenvolvida por nós: todas são jogos de terceiro
   portas da mesma cor, faíscas mágicas contra fantasmas, morcegos e cavaleiros esqueletos que
   reaparecem, energia que cai com o tempo e volta com comida, e 3 pedaços da Chave Mestra que
   abrem o Portão Principal.
-- **Controles:** Q/A/O/P + ESPAÇO sempre; na tela de título, **1** escolhe o joystick
-  **Sinclair** (6 a 0, padrão do TK) e **2** o **Cursor** (5 a 8 e 0).
+- **Controles:** Q/A/O/P + ESPAÇO sempre, e o joystick **Sinclair** (6 a 0) já vem ligado; na
+  tela de título, **1** e **2** trocam entre Sinclair e **Cursor** (5 a 8 e 0).
 
 ### 06 — Sabre Wulf → *A Selva de Verdemor* (original deste projeto)
 
@@ -179,8 +180,8 @@ Nenhuma das alternativas foi desenvolvida por nós: todas são jogos de terceiro
   Templo das Mil Raízes. São 30 telas em 5 regiões, espinheiros que só se desfazem com runas
   coloridas, 2 tocas que ligam pontos distantes, zarabatana, frutas que repõem a energia, 4
   criaturas inventadas e flores com efeitos passageiros (velocidade, invulnerabilidade e confusão).
-- **Controles:** Q/A/O/P + ESPAÇO sempre; na tela de título, **1** escolhe o joystick
-  **Sinclair** (6 a 0, padrão do TK) e **2** o **Cursor** (5 a 8 e 0).
+- **Controles:** Q/A/O/P + ESPAÇO sempre, e o joystick **Sinclair** (6 a 0) já vem ligado; na
+  tela de título, **1** e **2** trocam entre Sinclair e **Cursor** (5 a 8 e 0).
 
 **Extra — *Doomskulle*** (`extras/06-extra-doomskulle.tzx`, TZX, carregador da ROM, 48K): era a
 alternativa anterior do slot 06 e continua aqui como bônus.
@@ -197,7 +198,8 @@ alternativa anterior do slot 06 e continua aqui como bônus.
   de cima, com troca de tela, numa selva de folhagens, com criaturas para evitar ou enfrentar e
   objetos e chaves para recolher; mais adiante há catacumbas e ruínas. O ZXDB **não** o marca
   como modificação de Sabre Wulf, e o mapa, os gráficos, o placar e o personagem são próprios.
-- **Controles:** o menu oferece redefinir teclas, teclado, cursores, **Sinclair** e Kempston.
+- **Controles:** o menu oferece redefinir teclas, teclado (já escolhido: Q, A, O, P e espaço),
+  cursores, **Sinclair** e Kempston; **0** começa.
 
 ### 07 — Commando → *Sgt. Helmet – Training Day*
 
@@ -254,10 +256,53 @@ Também dá para abrir o emulador e arrastar o arquivo para a janela (drag-and-d
 (Speedlock e PowerLoad incluídos), e o carregamento leva o mesmo tempo da fita real. Os TAP
 (01, 04 e 07) carregam do mesmo jeito, pelo carregador da ROM.
 
-**Controles:** cada jogo tem os seus, normalmente pelo teclado (veja a tela de opções ou as
-instruções do jogo). O TK90X/TK95 tem **joystick Sinclair embutido**, que equivale às teclas
-**6, 7, 8, 9 e 0** (esquerda, direita, baixo, cima e tiro, como no Interface 2 da Sinclair).
-Bruce Lee, Green Beret e Boulder Dash aceitam esse modo ("Interface 2" ou "Sinclair" no menu do
-jogo). Dizzy usa o teclado ou o joystick Kempston. Entre as alternativas, Frank N Stein
-Re-booted ("SINCLAIR ZX2") e Doomskulle ("SINCLAIR") têm o modo Sinclair no menu; nos demais,
-veja a tela de opções do jogo.
+**Controles:** cada jogo tem os seus (veja a seção [Controles](#controles) abaixo). O emulador
+já abre cada jogo desta pasta com o joystick certo.
+
+## Controles
+
+O TK90X/TK95 tem **joystick Sinclair embutido**, que equivale às teclas **6, 7, 8, 9 e 0**
+(esquerda, direita, baixo, cima e tiro, como no Interface 2 da Sinclair). Só que a maioria dos
+jogos começa no **teclado** e só lê o joystick depois de escolhê-lo no menu dele: no celular,
+sem teclado, o joystick parecia não funcionar ("o jogo abre, mas não obedece o joystick").
+
+Por isso o emulador tem um **perfil para cada arquivo desta pasta** (`src/profiles.c`,
+reconhecido pelo CRC32 do arquivo). Ao abrir o jogo, o joystick (o da tela de toque, as setas do
+PC no modo automático e o controle USB) passa a apertar as teclas que o jogo usa **sem mexer no
+menu dele**, e, quando a carga termina, aparece por 5 s `Controles: ...` com a dica para começar.
+O resumo também fica no MENU (F1) e na página "Jogos e joystick" da ajuda. Para trocar à mão:
+F9 ou MENU > Joystick (abrir outro arquivo devolve o modo de antes). Se você escolher outro
+controle no menu do jogo, escolha o mesmo no MENU > Joystick: Interface 2/Sinclair = Sinclair 1,
+Kempston = Kempston, Protek/Cursor/AGF = Cursor, teclado = Teclas QAOP ou Teclas do jogo.
+
+Os controles padrão foram levantados na tela de título/opções de cada jogo, nas instruções do
+Spectrum Computing e em testes no emulador (teclas seguradas, posição do jogador lida na memória
+e, quando a tela não dizia, as portas lidas pela rotina de teclado do jogo). Todos foram
+conferidos só com toques (`--touch-script`), em 15/10/2026: começar a partida e segurar cada
+direção e o FOGO.
+
+| Jogo | Controles padrão do jogo | Joystick do perfil | Para começar (só toques) |
+|---|---|---|---|
+| 01 Deep Blue | menu "1 Cursor keys" já escolhido: 5/8 giram, 7 anda, 0 = RUN | **Cursor** (esq./dir. giram, cima anda) | FOGO (0 = RUN) |
+| 02 Frank N Stein Re-booted | Z esquerda, X direita, M ativa/pula (o jogo não usa cima/baixo); S começa | **Teclas do jogo**: Z, X, cima e FOGO = M | TECLADO > **S**, TECLADO (fecha) |
+| 03 Lala Prologue | Q pula, O/P andam, A baixo; qualquer tecla começa | **Teclas QAOP** | FOGO |
+| 04 Castelo Corvoalto | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço | **Sinclair 1** | FOGO |
+| 05 Bruce Lee | teclado já escolhido: Q, A, O, P, Z a M soco/chute; ENTER começa (e pausa) | **Teclas do jogo**: Q, A, O, P, FOGO = M | TECLADO > **ENTER**, TECLADO (fecha) |
+| 06 Selva de Verdemor | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço | **Sinclair 1** | FOGO |
+| 06 extra Doomskulle | teclado já escolhido: O, P, A, Q e espaço (tabela do jogo); 0 começa | **Teclas QAOP** | TECLADO > **0**, TECLADO (fecha) |
+| 07 Sgt. Helmet | 1 = teclado (Q, A, O, P, espaço atira), 2 = Kempston, 3 = Sinclair | **Teclas QAOP** | TECLADO > **1**, TECLADO (fecha) |
+| 08 Dizzy | Z, X, espaço pula (e começa), ENTER pega/usa | **Teclas do jogo**: Z, X, cima = espaço, FOGO = ENTER | CIMA (pular) |
+| 09 Green Beret | o teclado não tem teclas padrão (pede para definir); 4 = Sinclair | **Sinclair 1** | TECLADO > **4**, TECLADO (fecha), FOGO |
+| 10 Boulder Dash | teclado já escolhido, que inclui 7/6/5/8 e 0 (cursor) | **Cursor** | FOGO duas vezes (tela de joystick e título) |
+
+Detalhes que valem saber:
+
+- **Deep Blue** (3D Game Maker): esquerda e direita giram o mergulhador, cima anda para a frente;
+  baixo não faz nada.
+- **Frank N Stein**: não há pulo livre; M ativa molas e interruptores. Os postes descem sozinhos.
+- **Lala**: pular é o CIMA (Q); o FOGO (espaço) só serve para começar.
+- **Bruce Lee**: ENTER pausa o jogo, por isso não é o FOGO; para pausar, TECLADO > ENTER.
+- **Dizzy**: CIMA pula; o FOGO pega, larga e usa objetos (ENTER).
+- **Green Beret**: no menu do jogo, "1 Keyboard" pede para definir as teclas; o perfil usa o
+  Sinclair, que é a opção **4**.
+- **Boulder Dash**: na tela de título, esquerda/direita e cima/baixo trocam a caverna e o nível.

@@ -17,7 +17,7 @@ build/
 
 # Toolchains baixados localmente (llvm-mingw, SDL2, Android SDK/NDK, zxdev):
 # veja docs/research/windows-build.md, docs/research/android-build.md e docs/ANDROID.md
-tools/
+/tools/
 
 # Editores / SO
 .vscode/

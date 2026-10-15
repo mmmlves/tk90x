@@ -105,6 +105,7 @@ static const MenuItem menu_init[] = {
     { TOUCH_ACT_HZ,         "50/60 Hz",          1, "" },
     { TOUCH_ACT_MODEL,      "Modelo",            1, "" },
     { TOUCH_ACT_JOYMODE,    "Joystick",          1, "" },
+    { TOUCH_ACT_DIAG,       "Diagnostico",       1, "" },
     { TOUCH_ACT_HELP,       "Ajuda",             1, "" },
     { TOUCH_ACT_QUIT,       "Sair",              1, "" },
 };
@@ -129,6 +130,7 @@ struct TouchUI {
     float     fx, fy, fr;        /* FOGO */
     int       lbl_ts;
     char      joy_label[32];
+    char      menu_note[96];     /* linha no titulo do menu ("Controles: ...") */
 
     int       kb_on;
     SDL_Rect  kb;                /* area do teclado */
@@ -427,7 +429,7 @@ static void layout_menu(TouchUI *t)
             int chars = (int)strlen(t->items[i].label) + 1;
             int vlen = (int)strlen(t->items[i].value);
             /* espaco para o valor mais longo que o item pode ter */
-            if (t->items[i].act == TOUCH_ACT_JOYMODE && vlen < 10) vlen = 10;
+            if (t->items[i].act == TOUCH_ACT_JOYMODE && vlen < 14) vlen = 14;
             if (t->items[i].act == TOUCH_ACT_MODEL && vlen < 8) vlen = 8;
             chars += vlen;
             int wpx = chars * 8 * ts + 2 * (int)(pad + 0.5f);
@@ -579,11 +581,30 @@ void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
     }
 
     /* joystick a esquerda, FOGO a direita: no centro da margem se couber */
+    /* A area de toque (1,5 raio) fica longe das faixas de gesto do Android: a
+     * de baixo (inicio/apps) e as dos lados (voltar, ~6% da largura). Com
+     * margem, o controle se afasta da borda sem invadir a imagem; sobre a
+     * imagem (telas 4:3), so a base sai da faixa do lado. */
+    float side = (float)w * 0.06f;
     t->jr = u * 1.05f;
-    t->jx = ml >= 2 * t->jr + 2 * pad ? ml / 2.0f : pad + t->jr + u * 0.2f;
-    t->jy = h - t->jr - u * 0.5f;
+    t->jy = h - t->jr - u * 1.1f;
+    if (ml >= 2 * t->jr + 2 * pad) {
+        t->jx = ml / 2.0f;
+        if (t->jx < side + t->jr * 1.5f) t->jx = side + t->jr * 1.5f;
+        if (t->jx > ml - t->jr - pad) t->jx = ml - t->jr - pad;
+    } else {
+        t->jx = pad + t->jr + u * 0.2f;
+        if (t->jx < side + t->jr) t->jx = side + t->jr;
+    }
     t->fr = u * 0.8f;
-    t->fx = mr >= 2 * t->fr + 2 * pad ? w - mr / 2.0f : w - pad - t->fr - u * 0.2f;
+    if (mr >= 2 * t->fr + 2 * pad) {
+        t->fx = w - mr / 2.0f;
+        if (t->fx > w - side - t->fr * 1.4f) t->fx = w - side - t->fr * 1.4f;
+        if (t->fx < w - mr + t->fr + pad) t->fx = w - mr + t->fr + pad;
+    } else {
+        t->fx = w - pad - t->fr - u * 0.2f;
+        if (t->fx > w - side - t->fr) t->fx = w - side - t->fr;
+    }
     t->fy = t->jy;
     t->lbl_ts = iround(u * 0.025f);
     if (t->lbl_ts < 1) t->lbl_ts = 1;
@@ -661,6 +682,15 @@ void touch_release_all(TouchUI *t)
     t->pend_joy = 0;
 }
 
+void touch_release_keep_joy(TouchUI *t)
+{
+    if (!t) return;
+    for (int i = 0; i < MAX_PTRS; i++)
+        if (t->p[i].kind != P_JOY) memset(&t->p[i], 0, sizeof t->p[i]);
+    t->pend_keys = 0;
+    t->pend_joy = 0;
+}
+
 int touch_menu_open(const TouchUI *t) { return t && t->enabled && t->menu_on; }
 
 void touch_menu_close(TouchUI *t)
@@ -692,10 +722,11 @@ void touch_show_keyboard(TouchUI *t, int on)
 {
     if (!t) return;
     t->kb_on = on ? 1 : 0;
-    /* dedos no joystick/teclado anterior deixam de valer */
+    /* dedos no FOGO/teclado anterior deixam de valer; o polegar que segura o
+     * joystick continua (o outro dedo tocou TECLADO) */
     for (int i = 0; i < MAX_PTRS; i++) {
         int k = t->p[i].kind;
-        if (k == P_JOY || k == P_FIRE || k == P_KEY) t->p[i].used = 0;
+        if (k == P_FIRE || k == P_KEY) t->p[i].used = 0;
     }
     t->latched = 0;
 }
@@ -706,6 +737,11 @@ int touch_top_height(const TouchUI *t)
     /* em fila: todos na mesma altura; em pilha: um embaixo do outro */
     if (t->btn[0].y != t->btn[1].y) return 0;
     return t->btn[0].y + t->btn[0].h;
+}
+
+void touch_set_menu_note(TouchUI *t, const char *note)
+{
+    if (t) snprintf(t->menu_note, sizeof t->menu_note, "%s", note ? note : "");
 }
 
 void touch_set_joy_label(TouchUI *t, const char *label)
@@ -866,7 +902,7 @@ static int pointer_up(TouchUI *t, Ptr *p, float x, float y)
             if (!in_rect(rc, x, y)) break;
         }
         if (p->idx == BTN_MENU) {
-            touch_release_all(t);
+            touch_release_keep_joy(t);     /* o polegar no joystick continua dele */
             t->menu_on = 1;
             act = TOUCH_ACT_MENU;
             return act;            /* p ja foi liberado */
@@ -882,7 +918,8 @@ static int pointer_up(TouchUI *t, Ptr *p, float x, float y)
         if (p->idx >= 0 && in_rect(t->item_rc[p->idx], x, y)) {
             act = t->items[p->idx].act;
             /* turbo, Hz e joystick mudam um valor: o menu fica aberto para mostra-lo */
-            if (act != TOUCH_ACT_TURBO && act != TOUCH_ACT_HZ && act != TOUCH_ACT_JOYMODE)
+            if (act != TOUCH_ACT_TURBO && act != TOUCH_ACT_HZ && act != TOUCH_ACT_JOYMODE &&
+                act != TOUCH_ACT_DIAG)
                 t->menu_on = 0;
         } else if (p->idx == MI_CLOSE && in_rect(t->close_rc, x, y)) {
             t->menu_on = 0;
@@ -954,6 +991,19 @@ int touch_handle_event(TouchUI *t, const SDL_Event *ev, Machine *m, int *act)
         return 1;
     }
     Ptr *p = find_ptr(t, dev, id);
+    if (!p && type == 1 && dev != MOUSE_DEV && !t->menu_on && !t->kb_on) {
+        /* dedo que o SDL ainda acompanha mas que perdemos (menu, segundo
+         * plano): ele nunca manda outro FINGERDOWN. Arrastando sobre o
+         * joystick, ele volta a ser o joystick. */
+        float dx = x - t->jx, dy = y - t->jy;
+        if (dx * dx + dy * dy <= (t->jr * 1.5f) * (t->jr * 1.5f)) {
+            p = new_ptr(t, dev, id);
+            if (!p) return 0;
+            p->used = 1;
+            if (!pointer_down(t, p, x, y)) { p->used = 0; return 0; }
+            return 1;
+        }
+    }
     if (!p) return 0;
     if (type == 1) return pointer_move(t, p, x, y);
     int a = pointer_up(t, p, x, y);
@@ -1130,6 +1180,14 @@ static void draw_menu(TouchUI *t)
     int title_h = t->close_rc.h;
     draw_text(t, t->panel.x + pad, t->close_rc.y + (title_h - 8 * t->title_ts) / 2, t->title_ts,
               C_TITLE, "MENU");
+    if (t->menu_note[0]) {
+        /* controles do jogo aberto, entre "MENU" e o X, no maior tamanho que cabe */
+        int x0 = t->panel.x + pad + text_w("MENU", t->title_ts) + pad * 2;
+        int room = t->close_rc.x - pad - x0;
+        int ts = fit_scale(t->menu_note, t->menu_ts, room);
+        if (ts >= 1 && text_w(t->menu_note, ts) <= room)
+            draw_text(t, x0, t->close_rc.y + (title_h - 8 * ts) / 2, ts, C_VALUE, t->menu_note);
+    }
 
     int close_pr = 0;
     for (int i = 0; i < MAX_PTRS; i++)

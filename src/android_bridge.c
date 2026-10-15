@@ -118,6 +118,30 @@ static int call_activity_void(const char *method)
     return rc;
 }
 
+int android_in_multiwindow(void)
+{
+    /* Activity.isInMultiWindowMode() existe desde a API 24; antes, nunca ha
+     * varias janelas (GetMethodID falha e a excecao e limpa) */
+    JNIEnv *env = (JNIEnv *)SDL_AndroidGetJNIEnv();
+    if (!env) return 0;
+    jobject act = (jobject)SDL_AndroidGetActivity();     /* referencia local */
+    if (!act) return 0;
+    int on = 0;
+    jclass cls = (*env)->GetObjectClass(env, act);
+    if (cls) {
+        jmethodID mid = (*env)->GetMethodID(env, cls, "isInMultiWindowMode", "()Z");
+        if (mid && !(*env)->ExceptionCheck(env))
+            on = (*env)->CallBooleanMethod(env, act, mid) ? 1 : 0;
+        (*env)->DeleteLocalRef(env, cls);
+    }
+    if ((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionClear(env);
+        on = 0;
+    }
+    (*env)->DeleteLocalRef(env, act);
+    return on;
+}
+
 void android_open_picker(void)
 {
     call_activity_void("openFilePicker");

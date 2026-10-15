@@ -72,8 +72,18 @@ typedef enum {
     JOYMODE_SINCLAIR1,     /* teclas 6-0 (6 esq,7 dir,8 baixo,9 cima,0 fogo) - embutido no TK */
     JOYMODE_SINCLAIR2,     /* teclas 1-5 (1 esq,2 dir,3 baixo,4 cima,5 fogo) */
     JOYMODE_CURSOR,        /* 5 esq,6 baixo,7 cima,8 dir,0 fogo (Protek/AGF) */
+    JOYMODE_QAOP,          /* teclas Q cima, A baixo, O esq, P dir, SPACE fogo */
+    JOYMODE_KEYS,          /* teclas do jogo: mapa de machine_set_joy_keys (perfil do jogo) */
     JOYMODE_COUNT
 } JoyMode;
+
+/* Mapa do JOYMODE_KEYS: para cada bit do joystick (indice = posicao do bit
+ * JOY_*: 0 direita, 1 esquerda, 2 baixo, 3 cima, 4 fogo) ate 2 teclas
+ * pressionadas juntas (ex.: fogo = SYM + M). ZXK_COUNT = nenhuma. */
+#define JOYKEYS_DIRS 5
+typedef struct JoyKeys {
+    uint8_t key[JOYKEYS_DIRS][2];
+} JoyKeys;
 
 typedef struct MachineConfig {
     Model    model;
@@ -123,6 +133,7 @@ typedef struct Machine {
     uint8_t   ula_out;             /* ultimo byte escrito na porta FE */
     uint8_t   key_rows[8];         /* ativo baixo: bit=0 tecla pressionada (5 bits) */
     uint8_t   joy_state;           /* JOY_* do controle fisico */
+    JoyKeys   joy_keys;            /* teclas do JOYMODE_KEYS (machine_set_joy_keys; o reset mantem) */
     uint32_t  frame_count;         /* quadros desde o reset */
     int       flash_phase;         /* FLASH inverte a cada 32 quadros (ULA TK, bit 5) */
 
@@ -195,6 +206,11 @@ int  machine_audio(Machine *m, int16_t *out, int nsamples, int volume);
 void machine_key(Machine *m, ZXKey k, int pressed);
 void machine_release_all_keys(Machine *m);
 void machine_joy(Machine *m, uint8_t joy_bits);  /* estado completo JOY_* */
+/* Teclas do JOYMODE_KEYS (copiadas; NULL = nenhuma). machine_init comeca vazio. */
+void machine_set_joy_keys(Machine *m, const JoyKeys *k);
+/* Teclas que um modo de teclado (SINCLAIR1/2, CURSOR, QAOP, KEYS) aperta para
+ * cada bit do joystick; KEMPSTON (porta 31) devolve tudo vazio. */
+void machine_joy_keys_of(const Machine *m, JoyMode mode, JoyKeys *out);
 /* 1 se a ROM esperou tecla no editor (KEY-INPUT sem tecla nova, ver
  * key_wait_frame) em algum dos ultimos `frames` quadros: cursor K/L/C/E/G do
  * BASIC, INPUT, "scroll?". Fica 0 com um programa em codigo de maquina rodando
