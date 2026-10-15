@@ -79,7 +79,9 @@ usando o mouse no lugar do dedo. Ainda falta conferir tamanhos e posições num 
   jogo" abaixo). A área de toque fica longe das bordas (faixas de gesto do Android), e um polegar
   que continua na tela depois de abrir o menu ou o teclado, ou de voltar ao app, volta a valer
   assim que se mexe.
-- **FOGO** (à direita).
+- **FOGO** (à direita). Um toque rápido no FOGO ou numa tecla do teclado da tela fica
+  pressionado por pelo menos 200 ms, porque há jogos que só leem o teclado de vez em quando e
+  perdiam um toque curto; dois toques rápidos seguidos continuam sendo dois.
 - **Botões no alto, à direita:**
   - **MENU**: abre o menu de toque (a emulação pausa enquanto ele está aberto);
   - **TECLADO**: mostra ou esconde o teclado do TK;
@@ -113,8 +115,8 @@ teclado no celular, o joystick parecia morto.
 
 - **Jogos que vêm no app**: cada um tem um perfil. Ao abrir, o emulador troca o joystick para o
   modo que funciona com os controles padrão do jogo e, quando a carga termina, mostra por 5 s
-  `Controles: <resumo>` e como começar, por exemplo `FOGO inicia` ou `TECLADO > 1 para jogar`
-  (toque TECLADO, a tecla, e TECLADO de novo para voltar ao joystick). A tabela completa está em
+  `Controles: <resumo>` e como começar, por exemplo `FOGO inicia` ou `TECLADO > 1, depois
+  TECLADO` (toque TECLADO, a tecla, e TECLADO de novo para voltar ao joystick). A tabela completa está em
   `games/LEIAME.md`, seção "Controles". Abrir outro arquivo devolve o modo que você usava.
 - **Outros jogos**: o modo tem de ser o mesmo que o jogo lê. Escolha em **MENU > Joystick**:
   - opção "Interface 2", "Sinclair" ou "joystick" no menu do jogo: **Sinclair 1**;

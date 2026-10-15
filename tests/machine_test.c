@@ -755,7 +755,8 @@ static void test_profiles(void)
         const GameProfile *p = profile_for_file(files[i]);
         CHECK(p != NULL, "perfil de %s", files[i]);
         if (!p) continue;
-        CHECK(p->summary && strlen(p->summary) <= 28, "resumo curto em %s", p->name);
+        CHECK(p->summary && strlen(p->summary) <= 25, "resumo curto em %s", p->name);
+        CHECK(!p->hint || strlen(p->hint) <= 36, "dica curta em %s", p->name);
         CHECK(p->mode != JOYMODE_KEYS || profile_has_keys(p), "teclas no perfil %s", p->name);
         printf("  %-28s %08X %s\n", p->name, p->crc, p->summary);
     }

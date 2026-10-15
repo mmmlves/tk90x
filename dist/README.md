@@ -44,8 +44,8 @@ Controles na tela: joystick à esquerda, **FOGO** à direita, **TECLADO** abre o
 **LOAD ""** carrega a fita, **MENU** tem reset, modelo, 50/60 Hz, joystick e **Ajuda**.
 O botão Voltar fecha menus; apertado de novo, pergunta se quer sair.
 Os jogos incluídos já abrem com o joystick certo e mostram `Controles: ...` e como começar
-(por exemplo, `TECLADO > 1 para jogar`); em outros jogos, escolha em **MENU > Joystick** o mesmo
-controle do menu do jogo. A versão 1.1 instala por cima da 1.0.
+(por exemplo, `FOGO inicia` ou `TECLADO > 1, depois TECLADO`); em outros jogos, escolha em
+**MENU > Joystick** o mesmo controle do menu do jogo. A versão 1.2 instala por cima das anteriores (1.0 e 1.1).
 Para abrir outros jogos: **MENU > Abrir do aparelho**, ou toque num `.tap`/`.tzx` no gerenciador
 de arquivos e escolha **TK90X**. Detalhes em [docs/ANDROID.md](../docs/ANDROID.md).
 

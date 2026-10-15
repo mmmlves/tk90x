@@ -241,9 +241,10 @@ depois de escolhê-lo no menu dele; no celular, sem teclado, o joystick parecia 
 os jogos de `games/` têm **perfis** (`src/profiles.c`): ao abrir um deles, o emulador troca o
 joystick, só nesta sessão, para o modo que funciona com os controles padrão do jogo e, quando a
 carga termina, mostra por 5 segundos `Controles: <resumo>` e a dica para começar (por exemplo,
-`TECLADO > 1 para jogar`). O resumo também aparece no menu (F1 / MENU) e na página "Jogos e
-joystick" da ajuda. Abrir um arquivo sem perfil (ou trocar de modelo) devolve o modo de antes.
-O F9 continua trocando o modo à vontade; "Teclas do jogo" só aparece com um perfil que as tenha.
+`FOGO inicia` ou `TECLADO > 1, depois TECLADO`). O resumo também aparece no menu (F1 / MENU) e
+na página "Jogos e joystick" da ajuda. Abrir um arquivo sem perfil (ou trocar de modelo) devolve
+o modo de antes. O F9 continua trocando o modo à vontade; "Teclas do jogo" só aparece com um
+perfil que as tenha.
 Os controles de cada jogo estão em [`games/LEIAME.md`](games/LEIAME.md#controles).
 
 ### Menu e ajuda (F1)
@@ -282,7 +283,10 @@ ela, nada muda na janela.
   [Joystick e perfis dos jogos](#joystick-e-perfis-dos-jogos)). O modo atual aparece acima da
   base. A área de toque fica afastada das bordas, longe das faixas de gesto do Android, e um dedo
   que continua na tela depois do menu, do teclado ou de voltar ao app volta a valer ao se mover.
-- **FOGO** (direita): o botão de tiro. O joystick e o FOGO funcionam juntos (multitoque).
+- **FOGO** (direita): o botão de tiro. O joystick e o FOGO funcionam juntos (multitoque). Um
+  toque rápido no FOGO ou numa tecla do teclado da tela fica pressionado por pelo menos 200 ms
+  (10 quadros): há jogos que só leem o teclado de vez em quando (entre as notas da música do
+  título, por exemplo) e perdiam um toque curto. Dois toques rápidos seguidos continuam sendo dois.
 - **TECLADO** (alto, à direita): mostra ou esconde as 40 teclas do TK90X/TK95 nas 4 fileiras do
   aparelho (1-0, Q-P, A-ENTER, CAPS SHIFT-SPACE), com as palavras do modo K sob as letras (nomes do
   TK: `GOTO`, `GOSUB`, `CONT`, `RAND`) e os símbolos do SYMBOL SHIFT em vermelho. Com o teclado

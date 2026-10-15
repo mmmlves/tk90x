@@ -13,7 +13,8 @@
  * As teclas e o joystick nao vao direto para a maquina: o front-end junta
  * touch_keys()/touch_joy() ao teclado fisico (main.c, sync_keys) e chama
  * touch_frame_done() depois de cada quadro emulado, o que garante que um toque
- * rapido fique pressionado por pelo menos um quadro.
+ * rapido no FOGO ou numa tecla fique pressionado por pelo menos 10 quadros
+ * (200 ms): ha jogos que so leem o teclado de vez em quando.
  */
 #ifndef TK_TOUCH_H
 #define TK_TOUCH_H
@@ -79,7 +80,8 @@ void touch_draw(TouchUI *t);
 /* Estado para a maquina: teclas (bit = ZXKey) e joystick (JOY_*). */
 uint64_t touch_keys(const TouchUI *t);
 uint8_t  touch_joy(const TouchUI *t);
-/* Depois de cada quadro emulado: solta o que ja foi visto pela maquina. */
+/* Depois de cada quadro emulado: solta o que ja foi visto pela maquina (o
+ * toque rapido so depois do tempo minimo). */
 void touch_frame_done(TouchUI *t);
 /* Solta todos os dedos (menu aberto, perda de foco). */
 void touch_release_all(TouchUI *t);

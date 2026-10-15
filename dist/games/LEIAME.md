@@ -278,31 +278,56 @@ Kempston = Kempston, Protek/Cursor/AGF = Cursor, teclado = Teclas QAOP ou Teclas
 Os controles padrão foram levantados na tela de título/opções de cada jogo, nas instruções do
 Spectrum Computing e em testes no emulador (teclas seguradas, posição do jogador lida na memória
 e, quando a tela não dizia, as portas lidas pela rotina de teclado do jogo). Todos foram
-conferidos só com toques (`--touch-script`), em 15/10/2026: começar a partida e segurar cada
-direção e o FOGO.
+conferidos só com toques (`--touch-script`), em 15/10/2026: começar a partida seguindo a dica,
+segurar cada direção, as diagonais e o FOGO, e o FOGO junto com o joystick (dois dedos).
 
 | Jogo | Controles padrão do jogo | Joystick do perfil | Para começar (só toques) |
 |---|---|---|---|
-| 01 Deep Blue | menu "1 Cursor keys" já escolhido: 5/8 giram, 7 anda, 0 = RUN | **Cursor** (esq./dir. giram, cima anda) | FOGO (0 = RUN) |
-| 02 Frank N Stein Re-booted | Z esquerda, X direita, M ativa/pula (o jogo não usa cima/baixo); S começa | **Teclas do jogo**: Z, X, cima e FOGO = M | TECLADO > **S**, TECLADO (fecha) |
-| 03 Lala Prologue | Q pula, O/P andam, A baixo; qualquer tecla começa | **Teclas QAOP** | FOGO |
-| 04 Castelo Corvoalto | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço | **Sinclair 1** | FOGO |
-| 05 Bruce Lee | teclado já escolhido: Q, A, O, P, Z a M soco/chute; ENTER começa (e pausa) | **Teclas do jogo**: Q, A, O, P, FOGO = M | TECLADO > **ENTER**, TECLADO (fecha) |
-| 06 Selva de Verdemor | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço | **Sinclair 1** | FOGO |
-| 06 extra Doomskulle | teclado já escolhido: O, P, A, Q e espaço (tabela do jogo); 0 começa | **Teclas QAOP** | TECLADO > **0**, TECLADO (fecha) |
+| 01 Deep Blue | menu "1 Cursor keys" já escolhido: 5/8 giram, 7 anda, 6 atira, 0 pula (e RUN no menu) | **Cursor**: esq./dir. giram, cima anda para a frente, baixo atira, FOGO pula | FOGO (0 = RUN) |
+| 02 Frank N Stein Re-booted | Z esquerda, X direita, M ativa/pula (o jogo não usa cima/baixo); S começa | **Teclas do jogo**: Z, X, cima e FOGO = M, baixo = S | BAIXO (S) |
+| 03 Lala Prologue | O esquerda, P direita, Q ou espaço pula (A não é usado); qualquer tecla começa | **Teclas QAOP** (cima e FOGO pulam) | FOGO |
+| 04 Castelo Corvoalto | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço; fogo = faísca | **Sinclair 1** | FOGO |
+| 05 Bruce Lee | teclado já escolhido: Q, A, O, P, Z a M soco/chute; ENTER começa (e pausa) | **Teclas do jogo**: Q, A, O, P, FOGO = M | FOGO (pula a abertura), TECLADO > **ENTER**, TECLADO (fecha) |
+| 06 Selva de Verdemor | Sinclair (6 a 0) já ligado, além de Q/A/O/P e espaço; fogo = dardo | **Sinclair 1** | FOGO |
+| 06 extra Doomskulle | teclado já escolhido: O, P, A, Q e espaço (tabela do jogo); 0 começa | **Teclas do jogo**: Q, A, O, P, FOGO = espaço e 0 | FOGO |
 | 07 Sgt. Helmet | 1 = teclado (Q, A, O, P, espaço atira), 2 = Kempston, 3 = Sinclair | **Teclas QAOP** | TECLADO > **1**, TECLADO (fecha) |
 | 08 Dizzy | Z, X, espaço pula (e começa), ENTER pega/usa | **Teclas do jogo**: Z, X, cima = espaço, FOGO = ENTER | CIMA (pular) |
-| 09 Green Beret | o teclado não tem teclas padrão (pede para definir); 4 = Sinclair | **Sinclair 1** | TECLADO > **4**, TECLADO (fecha), FOGO |
-| 10 Boulder Dash | teclado já escolhido, que inclui 7/6/5/8 e 0 (cursor) | **Cursor** | FOGO duas vezes (tela de joystick e título) |
+| 09 Green Beret | o teclado não tem teclas padrão (pede para definir); 4 = Sinclair: 0 faca; arma especial = qualquer tecla fora da fileira de cima | **Teclas do jogo**: 6 a 9, FOGO = 0 e espaço (faca e arma especial) | TECLADO > **4**, TECLADO (fecha), FOGO |
+| 10 Boulder Dash | teclado já escolhido: E/Q/7 cima, F/K/6 baixo, M/X/5 esq., SYMBOL/C/8 dir., N/V/B/0 fogo | **Teclas do jogo**: E, K, X, C, FOGO = N | FOGO (tela de joystick); no título, quando aparecer PRESS FIRE TO PLAY, FOGO |
+
+Um toque rápido no FOGO ou numa tecla da tela fica pressionado por pelo menos 200 ms (10
+quadros). Antes, um toque de 3 a 5 quadros se perdia em telas de título que só leem o teclado de
+vez em quando (Lala falhava em metade dos toques curtos; Doomskulle e Boulder Dash também).
 
 Detalhes que valem saber:
 
-- **Deep Blue** (3D Game Maker): esquerda e direita giram o mergulhador, cima anda para a frente;
-  baixo não faz nada.
-- **Frank N Stein**: não há pulo livre; M ativa molas e interruptores. Os postes descem sozinhos.
-- **Lala**: pular é o CIMA (Q); o FOGO (espaço) só serve para começar.
-- **Bruce Lee**: ENTER pausa o jogo, por isso não é o FOGO; para pausar, TECLADO > ENTER.
-- **Dizzy**: CIMA pula; o FOGO pega, larga e usa objetos (ENTER).
+- **Deep Blue** (3D Game Maker): controle de tanque. Esquerda e direita giram o mergulhador no
+  lugar, cima anda para onde ele está virado (não para o alto da tela), baixo atira (a "bola de
+  fogo" do 3D Game Maker, o único ataque) e o FOGO pula (para a frente se ele estiver andando:
+  cima + FOGO com dois dedos).
+- **Frank N Stein**: não há pulo livre; M (cima ou FOGO) só age em molas e interruptores: no
+  chão comum não faz nada. Os postes descem sozinhos. O S (começar) fica no BAIXO, que o jogo não
+  usa: no FOGO não dá, porque com S e M juntos o título não começa.
+- **Lala**: cima e FOGO pulam (o manual: "Q - SPACE = JUMP"); a diagonal (ou direção + FOGO)
+  pula de lado, e é assim que se sai do buraco da primeira sala.
+- **Castelo Corvoalto** e **Selva de Verdemor**: o FOGO lança a faísca/sopra o dardo. Não toque
+  **2** no TECLADO na tela de título: ele passa o jogo para Cursor e o joystick Sinclair 1 fica
+  com as direções trocadas (o **1** volta).
+- **Bruce Lee**: ENTER pausa o jogo, por isso não é o FOGO; para pausar, TECLADO > ENTER. Durante
+  os créditos o FOGO (M) pula para o menu. No menu, **não use o joystick para baixo**: é a tecla
+  A, que troca 1 PLAYER por 2 PLAYERS (outro baixo destroca). Cima pula e a diagonal salta; FOGO
+  parado dá soco, andando dá voadora.
+- **Doomskulle**: o 0 começa e no jogo não faz nada, por isso vai junto no FOGO. FOGO andando
+  atira na direção do movimento (dois dedos); parado sobre um objeto, pega; parado, larga. Mexa-se
+  logo: os monstros aparecem em cima de quem fica parado.
+- **Sgt. Helmet**: um tiro por toque no FOGO (segurar não repete, como no teclado).
+- **Dizzy**: CIMA pula (e começa; o FOGO não começa); o FOGO pega, larga e usa objetos (ENTER).
+  Para passar do caldeirão da primeira tela, pule na diagonal.
 - **Green Beret**: no menu do jogo, "1 Keyboard" pede para definir as teclas; o perfil usa o
-  Sinclair, que é a opção **4**.
-- **Boulder Dash**: na tela de título, esquerda/direita e cima/baixo trocam a caverna e o nível.
+  Sinclair, que é a opção **4**. O FOGO aperta 0 (faca) e espaço (arma especial: lança-chamas,
+  granadas, bazuca), como manda o manual com joystick ("qualquer tecla fora da fileira de cima").
+  Com uma arma na mão, cada golpe também gasta munição dela.
+- **Boulder Dash**: o perfil usa letras e não o Cursor porque, na tela SELECT JOYSTICK TYPE, o 5
+  (esquerda no Cursor) escolheria "5. FULLER" e o joystick ficaria morto até reabrir o arquivo.
+  No título, o jogo ignora o FOGO por uns 10 s, até aparecer PRESS FIRE TO PLAY; esquerda/direita
+  e cima/baixo ali trocam a caverna e o nível. Na caverna, FOGO + direção cava ou pega sem andar.

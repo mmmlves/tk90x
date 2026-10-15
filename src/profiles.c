@@ -23,46 +23,62 @@
 
 static const GameProfile g_profiles[] = {
     /* 01 Deep Blue (3D Game Maker): menu "1 CURSOR KEYS" ja escolhido; 0 = RUN.
-     * Esquerda/direita giram, cima anda. */
+     * Controles de tanque: 5/8 giram, 7 anda para a frente, 6 atira (o
+     * "fireball" do 3D Game Maker) e 0 pula (para a frente se andando). */
     { 0x78eb972bu, "Deep Blue", JOYMODE_CURSOR, NOKEYS,
-      "Cursor 5-8 (cima anda)", "FOGO (0) inicia" },
+      "lados giram, cima anda", "baixo atira; FOGO inicia e pula" },
     /* 02 Frank N Stein Re-booted: "Z LEFT, X RIGHT, M ACTIVATE/JUMP", S comeca.
-     * O jogo so le Z, X e M (sem cima/baixo: os postes descem sozinhos). */
+     * O jogo so le Z, X e M (sem cima/baixo: os postes descem sozinhos); M so
+     * age em molas e alavancas. S no BAIXO (que o jogo nao usa) comeca a
+     * partida sem abrir o teclado; no jogo, S nao faz nada. No FOGO nao da:
+     * com S e M juntos o titulo nao comeca. */
     { 0x1cbcdc75u, "Frank N Stein Re-booted", JOYMODE_KEYS,
-      KEYS(ZXK_X, ZXK_Z, NK, ZXK_M, ZXK_M, NK),
-      "Z X, cima/fogo = M pula", "TECLADO > S para jogar" },
-    /* 03 Lala Prologue: Q A O P (Q pula) e espaco; qualquer tecla comeca. */
+      KEYS(ZXK_X, ZXK_Z, ZXK_S, ZXK_M, ZXK_M, NK),
+      "cima ou FOGO aciona molas", "BAIXO inicia; nao ha pulo livre" },
+    /* 03 Lala Prologue: "O = LEFT, P = RIGHT, Q - SPACE = JUMP" (manual); A nao
+     * e usado; qualquer tecla comeca. */
     { 0x8bd73d02u, "Lala Prologue", JOYMODE_QAOP, NOKEYS,
-      "Q A O P (cima pula)", "FOGO inicia" },
-    /* 04 A Fuga do Castelo Corvoalto: le o Sinclair (6-0) sem escolher nada. */
+      "cima ou FOGO pula", "FOGO inicia; diagonal pula de lado" },
+    /* 04 A Fuga do Castelo Corvoalto: le o Sinclair (6-0) sem escolher nada.
+     * (Na tela de titulo, 2 troca o jogo para Cursor: 1 volta.) */
     { 0x7e07d785u, "Castelo Corvoalto", JOYMODE_SINCLAIR1, NOKEYS,
-      "Sinclair 6-0 do TK", "FOGO inicia" },
+      "FOGO lanca faisca", "FOGO inicia" },
     /* 05 Bruce Lee: teclado ja escolhido; Q A O P, Z a M soco/chute, ENTER
-     * comeca (e pausa no jogo, por isso nao e o fogo). */
+     * comeca (e pausa no jogo, por isso nao e o fogo). Durante os creditos o
+     * M (FOGO) pula para o menu; no menu, A (baixo) troca 1/2 jogadores. */
     { 0x31ee64aau, "Bruce Lee", JOYMODE_KEYS,
       KEYS(ZXK_P, ZXK_O, ZXK_A, ZXK_Q, ZXK_M, NK),
-      "Q A O P, fogo = M (golpe)", "TECLADO > ENTER para jogar" },
+      "FOGO golpeia, cima pula", "FOGO, TECLADO > ENTER, TECLADO" },
     /* 06 A Selva de Verdemor: le o Sinclair (6-0) sem escolher nada. */
     { 0x16e905f6u, "Selva de Verdemor", JOYMODE_SINCLAIR1, NOKEYS,
-      "Sinclair 6-0 do TK", "FOGO inicia" },
+      "FOGO sopra o dardo", "FOGO inicia" },
     /* 06 extra Doomskulle: "2 KEYBOARD" ja escolhido, teclas O P A Q e
-     * espaco (tabela do jogo em FEB9); 0 comeca. */
-    { 0x568dd515u, "Doomskulle", JOYMODE_QAOP, NOKEYS,
-      "Q A O P, fogo = espaco", "TECLADO > 0 para jogar" },
+     * espaco (tabela do jogo em FEB9); 0 comeca e no jogo nao faz nada, por
+     * isso vai junto no FOGO. Espaco andando atira; parado pega/larga. */
+    { 0x568dd515u, "Doomskulle", JOYMODE_KEYS,
+      KEYS(ZXK_P, ZXK_O, ZXK_A, ZXK_Q, ZXK_SPACE, ZXK_0),
+      "andando, FOGO atira", "FOGO inicia; parado, FOGO pega" },
     /* 07 Sgt. Helmet: 1 = teclado (Q A O P, espaco atira) e comeca. */
     { 0xaed97757u, "Sgt. Helmet", JOYMODE_QAOP, NOKEYS,
-      "Q A O P, fogo = espaco", "TECLADO > 1 para jogar" },
+      "FOGO atira (um por toque)", "TECLADO > 1, depois TECLADO" },
     /* 08 Dizzy: Z esq, X dir, espaco pula (e comeca), ENTER pega/usa. */
     { 0x2c09a879u, "Dizzy", JOYMODE_KEYS,
       KEYS(ZXK_X, ZXK_Z, NK, ZXK_SPACE, ZXK_ENTER, NK),
-      "Z X, cima pula, fogo pega", "CIMA (pular) inicia" },
+      "cima pula, FOGO pega/usa", "CIMA (pular) inicia" },
     /* 09 Green Beret: o teclado nao tem teclas padrao (pede para definir);
-     * 4 = Sinclair (6-0) e FOGO comeca. */
-    { 0x75f28a0au, "Green Beret", JOYMODE_SINCLAIR1, NOKEYS,
-      "Sinclair 6-0 do TK", "TECLADO > 4, depois FOGO" },
-    /* 10 Boulder Dash: o teclado padrao inclui 5-8 e 0 (cursor). */
-    { 0x05e192a7u, "Boulder Dash", JOYMODE_CURSOR, NOKEYS,
-      "Cursor 5-8, fogo 0", "FOGO inicia (2 vezes)" },
+     * 4 = Sinclair (6-0) e FOGO comeca. 0 e a faca; com joystick, a arma
+     * especial (lanca-chamas, granadas, bazuca) e qualquer tecla fora da
+     * fileira de cima: o espaco vai junto no FOGO. */
+    { 0x75f28a0au, "Green Beret", JOYMODE_KEYS,
+      KEYS(ZXK_7, ZXK_6, ZXK_8, ZXK_9, ZXK_0, ZXK_SPACE),
+      "FOGO faca + arma especial", "TECLADO > 4, TECLADO, FOGO" },
+    /* 10 Boulder Dash: o teclado padrao tem E/Q/7 cima, F/K/6 baixo,
+     * M/X/5 esq., SymShift/C/8 dir. e N/V/B/0 fogo. Letras e nao o Cursor: na
+     * tela SELECT JOYSTICK TYPE (1-6) o 5 escolheria "FULLER" e travaria o
+     * joystick. FOGO + direcao cava/pega sem andar. */
+    { 0x05e192a7u, "Boulder Dash", JOYMODE_KEYS,
+      KEYS(ZXK_C, ZXK_X, ZXK_K, ZXK_E, ZXK_N, NK),
+      "FOGO+direcao cava parado", "FOGO; em PRESS FIRE, FOGO" },
 };
 #define PROFILES_N ((int)(sizeof g_profiles / sizeof g_profiles[0]))
 

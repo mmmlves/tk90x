@@ -16,8 +16,8 @@ if (!new File(sdlDir, 'CMakeLists.txt').exists()) {
 // Fontes C do emulador: ../src (outro diretorio com -PtkSrcDir=..., util para testes).
 def tkSrcDir = file(project.findProperty('tkSrcDir') ?: "${tkRepo}/src")
 
-def tkVersionCode = 2
-def tkVersionName = '1.1'
+def tkVersionCode = 3
+def tkVersionName = '1.2'
 
 // Assinatura de release: chave de desenvolvimento em tools/android/keystore
 // (outro lugar: -PtkKeystoreDir=...). Sem keystore.properties sai um APK nao assinado.

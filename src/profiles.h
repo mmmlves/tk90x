@@ -25,8 +25,8 @@ typedef struct GameProfile {
     const char *name;       /* nome curto do jogo */
     JoyMode     mode;       /* modo do joystick na sessao */
     JoyKeys     keys;       /* teclas (JOYMODE_KEYS; nos outros modos, vazio) */
-    const char *summary;    /* resumo dos controles, ASCII, ate 28 caracteres (cabe no aviso) */
-    const char *hint;       /* como comecar so com toques (NULL = nada a fazer) */
+    const char *summary;    /* resumo dos controles, ASCII, ate 25 caracteres (cabe no MENU) */
+    const char *hint;       /* como comecar so com toques, ate 36 (NULL = nada a fazer) */
 } GameProfile;
 
 /* CRC32 (polinomio do zlib/PNG) de len bytes. */

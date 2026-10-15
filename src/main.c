@@ -32,7 +32,7 @@
 #endif
 
 #define APP_NAME     "TK90X/TK95"
-#define APP_VERSION  "1.1"
+#define APP_VERSION  "1.2"
 
 #define AUDIO_RATE   44100
 #define AUDIO_VOLUME 9000

@@ -16,6 +16,16 @@
 #define MOUSE_DEV  ((SDL_TouchID)-0x7F00)  /* "dispositivo" do mouse (desktop --touch) */
 #define K(x)       ((uint64_t)1 << (x))
 #define MOD_MASK   (K(ZXK_CAPS) | K(ZXK_SYM))
+/* Toque rapido no FOGO ou numa tecla da tela: fica pressionado por pelo menos
+ * TAP_MIN quadros emulados (200 ms a 50 Hz). Varios jogos so leem o teclado de
+ * vez em quando (entre as notas da musica do titulo, por exemplo) e perdiam um
+ * toque de 3 a 5 quadros. Um toque novo na mesma tecla enquanto o anterior
+ * ainda esta sendo prolongado solta antes a tecla por KEY_GAP quadros (a ROM so
+ * aceita a mesma tecla de novo depois de 5 quadros solta) ou o FOGO por
+ * FIRE_GAP, para o jogo ver dois toques (tiro a tiro) e nao um so. */
+#define TAP_MIN    10
+#define KEY_GAP    5
+#define FIRE_GAP   2
 
 /* Cores ARGB (alfa no byte alto) */
 #define C_WHITE    0xFFFFFFFFu
@@ -129,6 +139,7 @@ struct TouchUI {
     float     jx, jy, jr;        /* joystick */
     float     fx, fy, fr;        /* FOGO */
     int       lbl_ts;
+    int       lbl_x0, lbl_room;  /* faixa onde cabe o rotulo do joystick (pixels) */
     char      joy_label[32];
     char      menu_note[96];     /* linha no titulo do menu ("Controles: ...") */
 
@@ -147,6 +158,9 @@ struct TouchUI {
     uint64_t  latched;           /* CAPS/SYMBOL travados para a proxima tecla */
     uint64_t  pend_keys;         /* pressionadas desde o ultimo quadro emulado */
     uint8_t   pend_joy;
+    /* toque minimo (TAP_MIN, KEY_GAP, FIRE_GAP): quadros restantes por tecla e do FOGO */
+    uint8_t   key_min[ZXK_COUNT], key_rel[ZXK_COUNT];
+    uint8_t   fire_min, fire_gap;
 };
 
 /* ------------------------------------------------------------------ */
@@ -608,6 +622,13 @@ void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
     t->fy = t->jy;
     t->lbl_ts = iround(u * 0.025f);
     if (t->lbl_ts < 1) t->lbl_ts = 1;
+    /* rotulo do modo: dentro da margem esquerda, sem invadir a imagem; sem
+     * margem (a base ja fica sobre a borda do TK), ate onde comeca o papel
+     * (a borda e 1/10 da largura da imagem de cada lado) */
+    t->lbl_x0 = (int)pad;
+    if (ml - 2 * (int)pad >= 2 * t->jr) t->lbl_room = ml - 2 * (int)pad;
+    else t->lbl_room = ml + pic.w / 10 - 2 * (int)pad;
+    if (t->lbl_room < (int)(2 * t->jr)) t->lbl_room = (int)(2 * t->jr);
 
     layout_menu(t);
 }
@@ -622,6 +643,10 @@ uint64_t touch_keys(const TouchUI *t)
     uint64_t k = t->pend_keys;
     for (int i = 0; i < MAX_PTRS; i++)
         if (t->p[i].used && t->p[i].kind == P_KEY) k |= K(t->p[i].idx) | t->p[i].mods;
+    for (int z = 0; z < ZXK_COUNT; z++) {
+        if (t->key_rel[z]) k &= ~K(z);          /* intervalo entre dois toques rapidos */
+        else if (t->key_min[z]) k |= K(z);      /* toque rapido ainda prolongado */
+    }
     return k;
 }
 
@@ -664,7 +689,10 @@ uint8_t touch_joy(const TouchUI *t)
 {
     if (!t || !t->enabled) return 0;
     /* a posicao atual do dedo manda no eixo que ela ocupa */
-    return joy_merge(t->pend_joy, joy_held(t));
+    uint8_t j = joy_merge(t->pend_joy, joy_held(t));
+    if (t->fire_gap) j &= (uint8_t)~JOY_FIRE;
+    else if (t->fire_min) j |= JOY_FIRE;
+    return j;
 }
 
 void touch_frame_done(TouchUI *t)
@@ -672,6 +700,20 @@ void touch_frame_done(TouchUI *t)
     if (!t) return;
     t->pend_keys = 0;
     t->pend_joy = 0;
+    for (int z = 0; z < ZXK_COUNT; z++) {
+        if (t->key_rel[z]) t->key_rel[z]--;
+        else if (t->key_min[z]) t->key_min[z]--;
+    }
+    if (t->fire_gap) t->fire_gap--;
+    else if (t->fire_min) t->fire_min--;
+}
+
+/* Esquece os toques rapidos ainda prolongados */
+static void drop_min(TouchUI *t)
+{
+    memset(t->key_min, 0, sizeof t->key_min);
+    memset(t->key_rel, 0, sizeof t->key_rel);
+    t->fire_min = t->fire_gap = 0;
 }
 
 void touch_release_all(TouchUI *t)
@@ -680,6 +722,7 @@ void touch_release_all(TouchUI *t)
     memset(t->p, 0, sizeof t->p);
     t->pend_keys = 0;
     t->pend_joy = 0;
+    drop_min(t);
 }
 
 void touch_release_keep_joy(TouchUI *t)
@@ -689,6 +732,7 @@ void touch_release_keep_joy(TouchUI *t)
         if (t->p[i].kind != P_JOY) memset(&t->p[i], 0, sizeof t->p[i]);
     t->pend_keys = 0;
     t->pend_joy = 0;
+    drop_min(t);
 }
 
 int touch_menu_open(const TouchUI *t) { return t && t->enabled && t->menu_on; }
@@ -800,6 +844,31 @@ static int key_at(const TouchUI *t, float x, float y, int *row, int *colp)
 
 static int is_mod(int zx) { return zx == ZXK_CAPS || zx == ZXK_SYM; }
 
+/* Algum dedo (alem de p) segura esta tecla / o FOGO? */
+static int key_held_by_other(const TouchUI *t, const Ptr *p, int zx)
+{
+    for (int i = 0; i < MAX_PTRS; i++) {
+        const Ptr *q = &t->p[i];
+        if (q != p && q->used && q->kind == P_KEY && (q->idx == zx || (q->mods & K(zx)))) return 1;
+    }
+    return 0;
+}
+
+static int fire_held_by_other(const TouchUI *t, const Ptr *p)
+{
+    for (int i = 0; i < MAX_PTRS; i++)
+        if (&t->p[i] != p && t->p[i].used && t->p[i].kind == P_FIRE) return 1;
+    return 0;
+}
+
+/* Toque novo: comeca o tempo minimo; se o toque anterior (dedo ja solto)
+ * ainda esta sendo prolongado, solta antes por gap_frames quadros */
+static void tap_min(uint8_t *min, uint8_t *gap, int held_by_other, int gap_frames)
+{
+    if (*min && !*gap && !held_by_other) *gap = (uint8_t)gap_frames;
+    *min = TAP_MIN;
+}
+
 static void key_down(TouchUI *t, Ptr *p, int zx)
 {
     uint64_t bit = K(zx);
@@ -826,6 +895,15 @@ static void key_down(TouchUI *t, Ptr *p, int zx)
         }
     }
     t->pend_keys |= bit | p->mods;
+    for (int z = 0; z < ZXK_COUNT; z++) {
+        if ((bit | p->mods) & K(z)) {
+            tap_min(&t->key_min[z], &t->key_rel[z], key_held_by_other(t, p, z), KEY_GAP);
+        } else if (!key_held_by_other(t, p, z)) {
+            /* outra tecla ja solta: o prolongamento acaba aqui. Digitando
+             * rapido, duas teclas juntas fariam a ROM ignorar as duas. */
+            t->key_min[z] = t->key_rel[z] = 0;
+        }
+    }
 }
 
 static void key_up(TouchUI *t, Ptr *p)
@@ -871,6 +949,7 @@ static int pointer_down(TouchUI *t, Ptr *p, float x, float y)
     if (dx * dx + dy * dy <= (t->fr * 1.4f) * (t->fr * 1.4f)) {
         p->kind = P_FIRE;
         t->pend_joy |= JOY_FIRE;
+        tap_min(&t->fire_min, &t->fire_gap, fire_held_by_other(t, p), FIRE_GAP);
         return 1;
     }
     return 0;
@@ -1085,9 +1164,12 @@ static void draw_joystick(TouchUI *t)
 
     /* modo do joystick sobre a base */
     if (t->joy_label[0]) {
-        int ts = t->lbl_ts;
+        int ts = fit_scale(t->joy_label, t->lbl_ts, t->lbl_room);
+        if (ts < 1) ts = 1;
         int tw = text_w(t->joy_label, ts);
         int lx = (int)(jx - tw / 2.0f);
+        if (lx + tw > t->lbl_x0 + t->lbl_room) lx = t->lbl_x0 + t->lbl_room - tw;
+        if (lx < t->lbl_x0) lx = t->lbl_x0;
         if (lx < (int)t->pad) lx = (int)t->pad;
         draw_text(t, lx, (int)(jy - jr - 8 * ts - t->u * 0.12f), ts, 0xB0FFFFFFu, t->joy_label);
     }
