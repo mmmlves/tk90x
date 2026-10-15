@@ -1,0 +1,28 @@
+// Projeto Android do emulador TK90X / TK95.
+// AGP 8.7.3 + Gradle 8.9 (o modelo do SDL 2.32 traz AGP 8.1.1, que so vai ate a API 34).
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.3'
+    }
+}
+
+// Saidas do Gradle fora da arvore de fontes: <repo>/build/android/gradle/<projeto>
+// (o "make clean" do repositorio as apaga). -PtkBuildDir=... troca a base.
+def tkBuildBase = file(project.findProperty('tkBuildDir') ?: "${rootDir}/../build/android")
+ext.tkBuildBase = tkBuildBase
+
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    layout.buildDirectory.set(new File(tkBuildBase, "gradle/${project.name}"))
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.layout.buildDirectory
+}

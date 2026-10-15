@@ -1,0 +1,84 @@
+# 01 - título, início, movimento nas 4 direções (QAOP), troca de tela e fruta
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+shot @SAIDA@/t1-titulo.png
+hold space 5
+untilmem tick 3 200
+echo --- partida começa na Clareira do Balão (21), em (120,72)
+expect cur_room 21
+expect lives 3
+expect energy 128
+# tira as criaturas da tela para o teste
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_en0+41 0
+poke obj_en0+24 0
+frames 4
+echo --- movimento: P direita, O esquerda, Q cima, A baixo
+hold p 20
+peek obj_player+1
+expectne obj_player+1 120
+hold o 40
+peek obj_player+1
+hold q 20
+peek obj_player+2
+hold a 40
+peek obj_player+2
+peek facing
+expect facing 1
+shot @SAIDA@/t1-movimento.png
+echo --- tela ao norte (Q): Encruzilhada (15)
+poke obj_player+1 120
+poke obj_player+2 72
+hold q 80
+expect cur_room 15
+expect obj_player+2 128
+frames 10
+shot @SAIDA@/t1-norte-encruzilhada.png
+echo --- volta ao sul
+hold a 30
+expect cur_room 21
+echo --- tela a oeste (O): Mata Fechada (20)
+poke obj_player+1 120
+poke obj_player+2 72
+hold o 130
+expect cur_room 20
+expect obj_player+1 224
+frames 10
+shot @SAIDA@/t1-oeste-matafechada.png
+echo --- volta a leste
+hold p 30
+expect cur_room 21
+peek obj_player+1
+echo --- tela ao sul (A): Trilha do Riacho (27)
+poke obj_player+1 120
+poke obj_player+2 72
+hold a 90
+expect cur_room 27
+frames 10
+shot @SAIDA@/t1-sul-riacho.png
+hold q 30
+expect cur_room 21
+echo --- come a manga (objeto 7) em (56,88): +40 de energia, +50 pontos
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke energy 50
+poke obj_player+1 80
+poke obj_player+2 88
+hold o 24
+expect item_taken+7 1
+expect energy 90
+expect score+2 0x50
+shot @SAIDA@/t1-manga.png
+echo --- ritmo: 25 passos por segundo (250 passos em 500 quadros), andando
+poke lives 9
+poke tick 0
+press p
+frames 250
+release p
+press o
+frames 250
+release o
+peek tick
+expect tick 250

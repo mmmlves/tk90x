@@ -1,0 +1,113 @@
+# 02 - zarabatana: dardo nas 4 direções, Névoa (1 dardo), Casco (2), Bocão (3),
+#      toque de criatura tira energia
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+poke obj_en0+17 0
+poke obj_en0+0 0
+frames 4
+echo --- Névoa viva acima de Nina; dardo para cima
+poke obj_en0+17 3
+poke obj_en0+18 0
+poke obj_en0+22 1
+poke obj_en0+0 1
+poke obj_en0+1 120
+poke obj_en0+2 24
+poke obj_en0+6 0x45
+poke obj_player+1 120
+poke obj_player+2 100
+poke facing 0
+frames 2
+press space
+frames 6
+expect obj_proj+17 1
+expect obj_proj+22 0
+frames 4
+shot @SAIDA@/t2-dardo.png
+release space
+untilmem obj_en0+17 4 60
+expect obj_en0+17 4
+expect score+2 0x50
+shot @SAIDA@/t2-acerto.png
+# a Névoa não volta durante o teste
+frames 20
+poke obj_en0+17 0
+poke obj_en0+0 0
+echo --- Casco (tipo 2) precisa de 2 dardos
+untilmem obj_proj+17 0 50
+poke obj_en0+41 3
+poke obj_en0+42 2
+poke obj_en0+46 2
+poke obj_en0+24 1
+poke obj_en0+25 120
+poke obj_en0+26 24
+poke obj_en0+30 0x46
+frames 6
+frames 14
+hold space 4
+untilmem obj_en0+46 1 80
+expect obj_en0+41 3
+frames 12
+frames 14
+hold space 4
+untilmem obj_en0+41 4 80
+expect score+1 0x01
+expect score+2 0x50
+frames 20
+poke obj_en0+41 0
+poke obj_en0+24 0
+echo --- Bocão (tipo 3, parado) precisa de 3 dardos; dardo para a direita
+untilmem obj_proj+17 0 50
+poke obj_en0+65 3
+poke obj_en0+66 3
+poke obj_en0+70 3
+poke obj_en0+48 1
+poke obj_en0+49 200
+poke obj_en0+50 100
+poke obj_en0+54 0x42
+poke facing 3
+frames 4
+frames 14
+hold space 4
+expect obj_proj+22 3
+frames 8
+shot @SAIDA@/t2-dardo-direita.png
+untilmem obj_en0+70 2 60
+expect obj_en0+49 200
+expect obj_en0+50 100
+frames 12
+frames 14
+hold space 4
+untilmem obj_en0+70 1 60
+frames 12
+frames 14
+hold space 4
+untilmem obj_en0+65 4 60
+expect score+1 0x03
+expect score+2 0x00
+echo --- dardo para a esquerda e para baixo
+untilmem obj_proj+17 0 50
+poke facing 2
+frames 14
+hold space 4
+expect obj_proj+22 2
+untilmem obj_proj+17 0 50
+poke facing 1
+frames 14
+hold space 4
+expect obj_proj+22 1
+echo --- Zunzum (tipo 1) encosta em Nina: -8 de energia
+untilmem obj_proj+17 0 50
+poke energy 100
+poke obj_en0+89 3
+poke obj_en0+90 1
+poke obj_en0+94 1
+poke obj_en0+72 1
+poke obj_en0+73 120
+poke obj_en0+74 100
+poke obj_en0+78 0x43
+frames 4
+expect energy 92
+expect obj_en0+89 4

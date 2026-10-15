@@ -1,0 +1,40 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+frames 470
+shot @SAIDA@/t7-titulo-pag2.png
+echo --- Sinclair: 7 direita, 9 cima, 8 baixo
+hold space 5
+untilmem tick 3 200
+poke obj_player+1 120
+poke obj_player+2 72
+hold 7 10
+peek obj_player+1
+hold 9 10
+peek obj_player+2
+hold 8 10
+peek obj_player+2
+echo --- volta ao titulo (fim de jogo) e escolhe Cursor
+poke lives 1
+poke energy 1
+poke drain_cnt 1
+untilmem game_result 2 200
+frames 100
+hold m 4
+frames 60
+hold 2 4
+frames 10
+expect ctrl_mode 1
+shot @SAIDA@/t7-titulo-cursor.png
+hold enter 4
+frames 120
+poke obj_player+1 120
+poke obj_player+2 72
+hold 8 10
+peek obj_player+1
+hold 5 10
+peek obj_player+1
+hold 7 10
+peek obj_player+2
+hold 6 10
+peek obj_player+2

@@ -1,0 +1,22 @@
+[4] untilpc: 4121 quadros, pc=0x8BC1 ok
+[6] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t6-titulo-pag2.png
+[7] --- Sinclair: 7 direita, 6 esquerda, 9 cima, 8 baixo, 0 dardo
+[9] untilmem tick==3: 23 quadros ok
+[10] expect ctrl_mode == 0 (valor 0): ok
+[16] expect obj_player+1 == 130 (valor 130): ok
+[18] expect obj_player+1 == 120 (valor 120): ok
+[20] expect obj_player+2 == 62 (valor 62): ok
+[22] expect obj_player+2 == 72 (valor 72): ok
+[25] expect obj_proj+17 == 1 (valor 1): ok
+[26] --- volta ao título (fim de jogo) e escolhe Cursor
+[30] untilmem game_result==2: 20 quadros ok
+[36] expect ctrl_mode == 1 (valor 1): ok
+[37] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t6-titulo-cursor.png
+[40] --- Cursor: 8 direita, 5 esquerda, 7 cima, 6 baixo
+[46] expect obj_player+1 == 130 (valor 130): ok
+[48] expect obj_player+1 == 120 (valor 120): ok
+[50] expect obj_player+2 == 62 (valor 62): ok
+[52] expect obj_player+2 == 72 (valor 72): ok
+[53] --- Q A O P continuam valendo
+[55] expect obj_player+1 == 130 (valor 130): ok
+quadros=5049 falhas=0

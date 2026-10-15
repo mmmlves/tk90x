@@ -1,0 +1,73 @@
+# 05 - energia cai, perde vida, fim de jogo, volta ao título, nova partida e
+#      vitória pelo portal do templo com os 4 pedaços do Disco de Âmbar
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+echo --- energia cai com o tempo (1 ponto a cada 2 s)
+peek energy
+frames 400
+peek energy
+expectne energy 128
+echo --- morte por energia
+poke energy 1
+poke drain_cnt 1
+frames 80
+expect lives 2
+expect energy 128
+shot @SAIDA@/t5-vida.png
+echo --- fim de jogo
+poke lives 1
+poke energy 1
+poke drain_cnt 1
+frames 120
+expect game_result 2
+shot @SAIDA@/t5-fimdejogo.png
+frames 60
+hold enter 5
+frames 30
+shot @SAIDA@/t5-volta-titulo.png
+untilpc 0x8000 0xBFFF 100
+echo --- nova partida
+hold 0 5
+untilmem tick 3 300
+expect lives 3
+expect cur_room 21
+expect score+2 0
+echo --- vitória: 4 pedaços; norte até o Templo das Mil Raízes (3)
+poke pieces 4
+poke hud_dirty 1
+poke lives 9
+poke obj_player+1 120
+poke obj_player+2 40
+hold q 40
+expect cur_room 15
+poke obj_player+1 120
+poke obj_player+2 24
+hold q 40
+expect cur_room 9
+poke energy 128
+hold q 130
+expect cur_room 3
+frames 10
+shot @SAIDA@/t5-templo.png
+poke energy 128
+press q
+untilmem link_open+35 1 200
+release q
+frames 6
+expect cur_room 3
+shot @SAIDA@/t5-portal-aberto.png
+hold q 30
+expect game_result 1
+frames 200
+shot @SAIDA@/t5-vitoria.png
+expect score+0 0
+expect score+1 0x20
+peek score+2
+frames 60
+hold space 5
+frames 30
+untilpc 0x8000 0xBFFF 100
+shot @SAIDA@/t5-titulo-de-novo.png

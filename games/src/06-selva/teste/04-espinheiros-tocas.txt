@@ -1,0 +1,54 @@
+# 04 - espinheiro vermelho fechado sem a runa e aberto com ela; tocas (túneis)
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+poke obj_en0+17 0
+poke obj_en0+0 0
+echo --- espinheiro vermelho a leste da Clareira do Balão, sem a runa (joystick 7)
+poke obj_player+1 200
+poke obj_player+2 72
+hold 7 40
+expect cur_room 21
+expect link_open+2 0
+peek obj_player+1
+shot @SAIDA@/t4-espinheiro-fechado.png
+echo --- com a runa vermelha
+poke keys 1
+poke hud_dirty 1
+hold 7 6
+expect link_open+2 1
+frames 4
+shot @SAIDA@/t4-espinheiro-aberto.png
+hold 7 30
+expect cur_room 22
+frames 10
+shot @SAIDA@/t4-vale-das-flores.png
+echo --- volta e desce para a Trilha do Riacho (27), que tem uma toca
+hold 6 30
+expect cur_room 21
+poke obj_player+1 120
+poke obj_player+2 100
+hold a 50
+expect cur_room 27
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_en0+41 0
+poke obj_en0+24 0
+echo --- a toca em (112,64) leva à Lagoa Escura (12)
+poke obj_player+1 112
+poke obj_player+2 100
+hold q 30
+expect cur_room 12
+peek obj_player+1
+peek obj_player+2
+peek on_stair
+frames 10
+shot @SAIDA@/t4-lagoa-escura.png
+echo --- sai da toca e entra de novo: volta para a Trilha do Riacho
+hold a 24
+expect on_stair 0
+expect cur_room 12
+hold q 24
+expect cur_room 27

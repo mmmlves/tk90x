@@ -1,0 +1,36 @@
+[5] untilpc: 4121 quadros, pc=0x8BC1 ok
+[7] untilmem tick==3: 23 quadros ok
+[8] --- energia cai com o tempo (1 ponto a cada 2 s)
+[9] energy = 128 (0x80)
+[11] energy = 112 (0x70)
+[12] expectne energy != 128 (valor 112): ok
+[13] --- morte por energia
+[17] expect lives == 2 (valor 2): ok
+[18] expect energy == 128 (valor 128): ok
+[19] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-vida.png
+[20] --- fim de jogo
+[25] expect game_result == 2 (valor 2): ok
+[26] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-fimdejogo.png
+[30] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-volta-titulo.png
+[31] untilpc: 50 quadros, pc=0x8BC1 ok
+[32] --- nova partida
+[34] untilmem tick==3: 103 quadros ok
+[35] expect lives == 3 (valor 3): ok
+[36] expect cur_room == 21 (valor 21): ok
+[37] expect score+2 == 0 (valor 0): ok
+[38] --- vitória: 4 pedaços; norte até o Templo das Mil Raízes (3)
+[45] expect cur_room == 15 (valor 15): ok
+[49] expect cur_room == 9 (valor 9): ok
+[52] expect cur_room == 3 (valor 3): ok
+[54] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-templo.png
+[57] untilmem link_open+35==1: 26 quadros ok
+[60] expect cur_room == 3 (valor 3): ok
+[61] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-portal-aberto.png
+[63] expect game_result == 1 (valor 1): ok
+[65] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-vitoria.png
+[66] expect score+0 == 0 (valor 0): ok
+[67] expect score+1 == 32 (valor 32): ok
+[68] score+2 = 48 (0x30)
+[72] untilpc: 50 quadros, pc=0x8BC1 ok
+[73] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t5-titulo-de-novo.png
+quadros=5629 falhas=0

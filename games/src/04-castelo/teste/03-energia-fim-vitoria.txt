@@ -1,0 +1,47 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+echo --- energia cai com o tempo
+peek energy
+frames 400
+peek energy
+echo --- morte por energia
+poke energy 1
+poke drain_cnt 1
+frames 80
+expect lives 2
+expect energy 128
+shot @SAIDA@/t6-vida.png
+echo --- fim de jogo
+poke lives 1
+poke energy 1
+poke drain_cnt 1
+frames 120
+expect game_result 2
+shot @SAIDA@/t6-fimdejogo.png
+frames 60
+hold enter 5
+frames 30
+shot @SAIDA@/t6-volta-titulo.png
+untilpc 0x8000 0xBFFF 100
+hold 0 5
+untilmem tick 3 300
+expect lives 3
+expect cur_room 1
+echo --- vitoria: 3 pedacos, porta mestra no Portao
+poke pieces 3
+poke hud_dirty 1
+poke obj_player+1 120
+poke obj_player+2 100
+hold a 50
+expect cur_room 0
+poke obj_player+1 120
+hold a 130
+expect link_open+6 1
+shot @SAIDA@/t6-portao-aberto.png
+hold a 30
+expect game_result 1
+frames 200
+shot @SAIDA@/t6-vitoria.png

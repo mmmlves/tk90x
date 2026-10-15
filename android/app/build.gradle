@@ -1,0 +1,140 @@
+// App Android do emulador TK90X / TK95 (br.com.tk90x.emulador).
+// Compila o SDL2 a partir do codigo-fonte (tools/android/SDL2-2.32.10, nao copiado para
+// o repositorio) e os fontes C de ../src. As fitas de ../games entram no APK como assets.
+apply plugin: 'com.android.application'
+
+def tkRepo = file("${rootDir}/..")
+def tkBuildBase = rootProject.ext.tkBuildBase
+
+// SDL2: -Psdl2Dir=..., senao $SDL2_ANDROID_SRC (tools/android/env.sh), senao o caminho padrao.
+def sdlDir = file(project.findProperty('sdl2Dir') ?: (System.getenv('SDL2_ANDROID_SRC')
+        ?: "${tkRepo}/tools/android/SDL2-2.32.10"))
+if (!new File(sdlDir, 'CMakeLists.txt').exists()) {
+    throw new GradleException("SDL2 nao encontrado em ${sdlDir} (veja docs/research/android-build.md)")
+}
+
+// Fontes C do emulador: ../src (outro diretorio com -PtkSrcDir=..., util para testes).
+def tkSrcDir = file(project.findProperty('tkSrcDir') ?: "${tkRepo}/src")
+
+def tkVersionCode = 1
+def tkVersionName = '1.0'
+
+// Assinatura de release: chave de desenvolvimento em tools/android/keystore
+// (outro lugar: -PtkKeystoreDir=...). Sem keystore.properties sai um APK nao assinado.
+def ksDir = file(project.findProperty('tkKeystoreDir')
+        ?: ((System.getenv('TK_ANDROID') ?: "${tkRepo}/tools/android") + '/keystore'))
+def ksProps = new Properties()
+def ksFile = new File(ksDir, 'keystore.properties')
+if (ksFile.exists()) { ksFile.withInputStream { ksProps.load(it) } }
+
+android {
+    namespace 'br.com.tk90x.emulador'
+    compileSdk 35
+    ndkVersion '27.3.13750724'          // fixo: sem isto o AGP pede o NDK padrao dele
+    defaultConfig {
+        applicationId 'br.com.tk90x.emulador'
+        minSdk 21                       // o NDK r27 nao gera para menos que a API 21
+        targetSdk 35
+        versionCode tkVersionCode
+        versionName tkVersionName
+        externalNativeBuild {
+            cmake {
+                // FLEXIBLE_PAGE_SIZES: .so alinhadas em 16 KB (aparelhos com paginas de 16 KB,
+                // Android 15+); no NDK r27 ainda nao e o padrao.
+                arguments '-DANDROID_STL=c++_static', '-DSDL_STATIC=OFF', '-DSDL_TEST=OFF',
+                        '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON',
+                        "-DSDL2_SRC_DIR=${sdlDir}", "-DTK_SRC_DIR=${tkSrcDir}"
+                abiFilters 'arm64-v8a', 'armeabi-v7a', 'x86_64'
+            }
+        }
+    }
+    signingConfigs {
+        release {
+            if (ksProps['storeFile']) {
+                storeFile new File(ksDir, ksProps['storeFile'])
+                storePassword ksProps['storePassword']
+                keyAlias ksProps['keyAlias']
+                keyPassword ksProps['keyPassword']
+            }
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (ksProps['storeFile']) { signingConfig signingConfigs.release }
+        }
+    }
+    sourceSets.main {
+        // Classes Java do SDL (SDLActivity etc.) direto do pacote do SDL: Java e C sempre
+        // da mesma versao (o SDL confere isso ao iniciar).
+        java.srcDirs += "${sdlDir}/android-project/app/src/main/java"
+    }
+    externalNativeBuild {
+        cmake {
+            path 'jni/CMakeLists.txt'
+            version '3.22.1'
+            buildStagingDirectory "${tkBuildBase}/cxx"
+        }
+    }
+    lint {
+        abortOnError false
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Fitas embutidas: copia ../games (menos games/src e arquivos ocultos) para
+// assets/games e gera assets/games.idx, lido por src/android_bridge.c:
+//   1a linha: "tk90x-games <versionCode>-<sha1 do conteudo>" (carimbo de versao)
+//   demais:   caminhos relativos a assets/games
+// O app extrai tudo para o armazenamento interno quando o carimbo muda.
+// ---------------------------------------------------------------------------
+abstract class GamesAssetsTask extends DefaultTask {
+    @InputFiles @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getGameFiles()
+    @Internal
+    abstract DirectoryProperty getGamesRoot()
+    @Input
+    abstract Property<Integer> getVersionCode()
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDir()
+
+    @TaskAction
+    void generate() {
+        def out = outputDir.get().asFile
+        out.deleteDir()
+        out.mkdirs()
+        def root = gamesRoot.get().asFile.toPath()
+        def entries = gameFiles.files.findAll { it.isFile() }.collect { f ->
+            [rel: root.relativize(f.toPath()).toString().replace(File.separatorChar, '/' as char), file: f]
+        }.sort { it.rel }
+        def md = java.security.MessageDigest.getInstance('SHA-1')
+        entries.each { e ->
+            def data = e.file.bytes
+            def dst = new File(out, 'games/' + e.rel)
+            dst.parentFile.mkdirs()
+            dst.bytes = data
+            md.update(e.rel.getBytes('UTF-8'))
+            md.update((byte) 0)
+            md.update(data)
+        }
+        def hash = md.digest().encodeHex().toString().substring(0, 16)
+        def idx = "tk90x-games ${versionCode.get()}-${hash}\n" + entries.collect { it.rel + '\n' }.join('')
+        new File(out, 'games.idx').setText(idx, 'UTF-8')
+        logger.lifecycle("TK90X: ${entries.size()} arquivo(s) de games/ nos assets (carimbo ${versionCode.get()}-${hash})")
+    }
+}
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        def t = project.tasks.register("tk90xGamesAssets${variant.name.capitalize()}", GamesAssetsTask) {
+            gamesRoot.set(file("${tkRepo}/games"))
+            gameFiles.from(fileTree("${tkRepo}/games") {
+                exclude 'src/**'
+                exclude '**/.*'
+            })
+            versionCode.set(tkVersionCode)
+        }
+        variant.sources.assets.addGeneratedSourceDirectory(t, { it.outputDir })
+    }
+}

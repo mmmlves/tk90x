@@ -1,0 +1,38 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+echo --- caminho real ate a chave vermelha (sem teletransporte)
+poke lives 9
+hold a 80
+expect cur_room 0
+poke energy 128
+hold a 56
+hold o 130
+expect cur_room 3
+poke energy 128
+hold q 32
+hold o 210
+hold a 32
+hold o 24
+expect cur_room 4
+poke energy 128
+hold o 40
+expect cur_room 18
+shot @SAIDA@/t8-adega.png
+poke energy 128
+peek obj_player+1
+hold q 16
+hold p 84
+peek obj_player+1
+hold q 60
+expect cur_room 20
+poke energy 128
+hold p 90
+hold q 100
+expect keys 1
+shot @SAIDA@/t8-chave.png
+peek obj_player+1
+peek obj_player+2
+peek lives

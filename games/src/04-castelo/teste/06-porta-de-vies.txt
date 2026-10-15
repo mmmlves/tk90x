@@ -1,0 +1,30 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+echo --- porta vermelha do Salão, encostando de viés (caixa toca parede e porta)
+poke keys 1
+echo de baixo: linhas 10-12 (a 12 é parede)
+poke obj_player+1 18
+poke obj_player+2 82
+hold o 10
+expect link_open+2 1
+shot @SAIDA@/t9-porta-vies.png
+poke obj_player+2 72
+hold o 40
+expect cur_room 7
+echo --- porta amarela do Trono, de baixo (linhas 10-12)
+poke keys 8
+poke obj_player+1 224
+poke obj_player+2 72
+hold p 40
+expect cur_room 1
+poke obj_player+1 120
+poke obj_player+2 72
+hold q 80
+expect cur_room 2
+poke obj_player+1 18
+poke obj_player+2 82
+hold o 10
+expect link_open+12 1

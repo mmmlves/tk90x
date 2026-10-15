@@ -1,0 +1,44 @@
+[4] untilpc: 4121 quadros, pc=0x8BC1 ok
+[6] untilmem tick==3: 23 quadros ok
+[10] --- velocidade normal: 2 pixels por passo
+[14] obj_player+1 = 140 (0x8C)
+[15] expect obj_player+1 == 140 (valor 140): ok
+[16] --- Flor-do-vento (objeto 18) em (184,56): velocidade
+[20] expect item_taken+18 == 1 (valor 1): ok
+[21] expect effect == 1 (valor 1): ok
+[22] expect obj_player+6 == 70 (valor 70): ok
+[23] effect_timer = 247 (0xF7)
+[25] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t3-flor-vento.png
+[29] obj_player+1 = 80 (0x50)
+[30] expect obj_player+1 == 80 (valor 80): ok
+[31] --- o efeito acaba sozinho
+[34] expect effect == 0 (valor 0): ok
+[35] expect obj_player+6 == 71 (valor 71): ok
+[36] --- Flor-tonta (objeto 20) na Encruzilhada (15) em (152,120): confusão
+[40] expect cur_room == 15 (valor 15): ok
+[46] expect item_taken+20 == 1 (valor 1): ok
+[47] expect effect == 3 (valor 3): ok
+[48] --- P anda para a esquerda e Q para baixo
+[52] obj_player+1 = 36 (0x24)
+[53] expect obj_player+1 == 36 (valor 36): ok
+[54] expect facing == 2 (valor 2): ok
+[56] obj_player+2 = 84 (0x54)
+[57] expect obj_player+2 == 84 (valor 84): ok
+[58] expect facing == 1 (valor 1): ok
+[60] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t3-flor-tonta.png
+[63] expect effect == 0 (valor 0): ok
+[64] --- de volta à Clareira do Balão, a Flor-do-vento renasceu
+[68] expect cur_room == 21 (valor 21): ok
+[69] expect item_taken+18 == 0 (valor 0): ok
+[70] --- Flor-de-cristal (objeto 19) na Mata dos Sussurros (20) em (216,24)
+[74] expect cur_room == 20 (valor 20): ok
+[82] expect item_taken+19 == 1 (valor 1): ok
+[83] expect effect == 2 (valor 2): ok
+[84] obj_player+6 = 69 (0x45)
+[85] expectne obj_player+6 != 70 (valor 69): ok
+[86] --- invulnerável: o Casco encosta, morre e a energia não cai
+[96] expect energy == 100 (valor 100): ok
+[97] expect obj_en0+17 == 4 (valor 4): ok
+[98] score+1 = 12289 (0x3001)
+[100] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t3-flor-cristal.png
+quadros=4575 falhas=0

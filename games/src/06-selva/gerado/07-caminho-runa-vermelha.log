@@ -1,0 +1,26 @@
+[5] untilpc: 4121 quadros, pc=0x8BC1 ok
+[7] untilmem tick==3: 23 quadros ok
+[9] --- oeste até a Mata dos Sussurros (20)
+[11] expect cur_room == 20 (valor 20): ok
+[12] expect obj_player+1 == 224 (valor 224): ok
+[14] --- contorna as sebes até a saída sul
+[17] expect obj_player+1 == 144 (valor 144): ok
+[18] expect obj_player+2 == 80 (valor 80): ok
+[21] expect obj_player+1 == 120 (valor 120): ok
+[23] expect cur_room == 26 (valor 26): ok
+[25] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t7-samambaial.png
+[27] --- Samambaial: desvia da moita e sai a oeste
+[30] obj_player+1 = 132 (0x84)
+[32] expect cur_room == 25 (valor 25): ok
+[34] --- Árvore Oca: sobe, contorna as árvores e pega a runa vermelha
+[37] expect obj_player+1 == 144 (valor 144): ok
+[40] expect keys == 1 (valor 1): ok
+[41] expect item_taken+4 == 1 (valor 1): ok
+[42] expect score+1 == 1 (valor 1): ok
+[44] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t7-runa-vermelha.png
+[45] --- entra na toca da árvore oca e sai na Escadaria Verde (2)
+[48] expect obj_player+1 == 112 (valor 112): ok
+[50] expect cur_room == 2 (valor 2): ok
+[52] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t7-escadaria-verde.png
+[53] expect lives == 9 (valor 9): ok
+quadros=5049 falhas=0

@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App Android do emulador TK90X / TK95. versionCode/versionName vem do app/build.gradle. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:installLocation="auto">
+
+    <!-- OpenGL ES 2.0 (renderizador do SDL) -->
+    <uses-feature android:glEsVersion="0x00020000" />
+
+    <!-- Tela de toque, controles e teclado fisico sao todos opcionais -->
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
+    <uses-feature android:name="android.hardware.gamepad" android:required="false" />
+    <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+    <uses-feature android:name="android.hardware.type.pc" android:required="false" />
+    <!-- sensorLandscape implica esta; opcional para nao esconder o app de TVs/Chromebooks -->
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
+
+    <!-- Vibracao (SDL haptic / resposta dos botoes de toque) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <!-- Nenhuma permissao de armazenamento: os arquivos do aparelho chegam pelo seletor do
+         sistema (Storage Access Framework) ou por "Abrir com" (so content://; um file:// de
+         apps antigos nao poderia ser lido sem permissao), e sao copiados para o cache. -->
+
+    <application android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="true"
+        android:theme="@style/AppTheme"
+        android:appCategory="game"
+        android:isGame="true"
+        android:hardwareAccelerated="true">
+
+        <!-- Dicas do SDL como variaveis de ambiente (SDLActivity.getManifestEnvironmentVariables).
+             Sem esta, uma janela SDL_WINDOW_RESIZABLE faria o SDL pedir FULL_USER e o app
+             giraria para retrato apesar do sensorLandscape abaixo. -->
+        <meta-data android:name="SDL_ENV.SDL_IOS_ORIENTATIONS"
+            android:value="LandscapeLeft LandscapeRight" />
+        <!-- O acelerometro nao vira joystick (o main.c tambem define a dica): inclinar o
+             aparelho apertaria uma direcao e um controle conectado depois seria ignorado. -->
+        <meta-data android:name="SDL_ENV.SDL_ACCELEROMETER_AS_JOYSTICK"
+            android:value="0" />
+
+        <!-- configChanges cobre tudo o que o Android 15 conhece (inclusive troca de chip
+             mcc/mnc, texto em negrito e genero gramatical): a Activity nunca e recriada,
+             porque o SDL recomecaria do zero e o jogo em andamento se perderia. -->
+        <activity android:name=".TK90XActivity"
+            android:screenOrientation="sensorLandscape"
+            android:alwaysRetainTaskState="true"
+            android:launchMode="singleTask"
+            android:configChanges="layoutDirection|locale|orientation|uiMode|screenLayout|screenSize|smallestScreenSize|keyboard|keyboardHidden|navigation|density|fontScale|touchscreen|colorMode|fontWeightAdjustment|grammaticalGender|mcc|mnc"
+            android:preferMinimalPostProcessing="true"
+            android:resizeableActivity="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Controles USB -->
+            <intent-filter>
+                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+            </intent-filter>
+
+            <!-- "Abrir com": fitas e snapshots de um gerenciador de arquivos ou dos downloads.
+                 1) tipos MIME que os apps costumam informar para .tap/.tzx/.z80/.sna -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-spectrum-tap" />
+                <data android:mimeType="application/x-tzx" />
+                <data android:mimeType="application/x-zx-spectrum-tzx" />
+                <data android:mimeType="application/x-zx-spectrum-snapshot" />
+                <data android:mimeType="application/x-spectrum-snapshot" />
+            </intent-filter>
+            <!-- 2) qualquer tipo, desde que o caminho termine numa extensao conhecida
+                 (o pathPattern do Android diferencia maiusculas e nao volta atras em '.') -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.tap" />
+                <data android:pathPattern=".*\\..*\\.tap" />
+                <data android:pathPattern=".*\\..*\\..*\\.tap" />
+                <data android:pathPattern=".*\\.TAP" />
+                <data android:pathPattern=".*\\..*\\.TAP" />
+                <data android:pathPattern=".*\\..*\\..*\\.TAP" />
+                <data android:pathPattern=".*\\.tzx" />
+                <data android:pathPattern=".*\\..*\\.tzx" />
+                <data android:pathPattern=".*\\..*\\..*\\.tzx" />
+                <data android:pathPattern=".*\\.TZX" />
+                <data android:pathPattern=".*\\..*\\.TZX" />
+                <data android:pathPattern=".*\\..*\\..*\\.TZX" />
+                <data android:pathPattern=".*\\.sna" />
+                <data android:pathPattern=".*\\..*\\.sna" />
+                <data android:pathPattern=".*\\..*\\..*\\.sna" />
+                <data android:pathPattern=".*\\.SNA" />
+                <data android:pathPattern=".*\\..*\\.SNA" />
+                <data android:pathPattern=".*\\..*\\..*\\.SNA" />
+                <data android:pathPattern=".*\\.z80" />
+                <data android:pathPattern=".*\\..*\\.z80" />
+                <data android:pathPattern=".*\\..*\\..*\\.z80" />
+                <data android:pathPattern=".*\\.Z80" />
+                <data android:pathPattern=".*\\..*\\.Z80" />
+                <data android:pathPattern=".*\\..*\\..*\\.Z80" />
+                <data android:pathPattern=".*\\.scr" />
+                <data android:pathPattern=".*\\..*\\.scr" />
+                <data android:pathPattern=".*\\..*\\..*\\.scr" />
+                <data android:pathPattern=".*\\.SCR" />
+                <data android:pathPattern=".*\\..*\\.SCR" />
+                <data android:pathPattern=".*\\..*\\..*\\.SCR" />
+                <data android:pathPattern=".*\\.bin" />
+                <data android:pathPattern=".*\\..*\\.bin" />
+                <data android:pathPattern=".*\\..*\\..*\\.bin" />
+                <data android:pathPattern=".*\\.BIN" />
+                <data android:pathPattern=".*\\..*\\.BIN" />
+                <data android:pathPattern=".*\\..*\\..*\\.BIN" />
+                <data android:pathPattern=".*\\.cod" />
+                <data android:pathPattern=".*\\..*\\.cod" />
+                <data android:pathPattern=".*\\..*\\..*\\.cod" />
+                <data android:pathPattern=".*\\.COD" />
+                <data android:pathPattern=".*\\..*\\.COD" />
+                <data android:pathPattern=".*\\..*\\..*\\.COD" />
+            </intent-filter>
+            <!-- 3) o mesmo quando o provedor nao informa tipo MIME -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.tap" />
+                <data android:pathPattern=".*\\..*\\.tap" />
+                <data android:pathPattern=".*\\..*\\..*\\.tap" />
+                <data android:pathPattern=".*\\.TAP" />
+                <data android:pathPattern=".*\\..*\\.TAP" />
+                <data android:pathPattern=".*\\..*\\..*\\.TAP" />
+                <data android:pathPattern=".*\\.tzx" />
+                <data android:pathPattern=".*\\..*\\.tzx" />
+                <data android:pathPattern=".*\\..*\\..*\\.tzx" />
+                <data android:pathPattern=".*\\.TZX" />
+                <data android:pathPattern=".*\\..*\\.TZX" />
+                <data android:pathPattern=".*\\..*\\..*\\.TZX" />
+                <data android:pathPattern=".*\\.sna" />
+                <data android:pathPattern=".*\\..*\\.sna" />
+                <data android:pathPattern=".*\\..*\\..*\\.sna" />
+                <data android:pathPattern=".*\\.SNA" />
+                <data android:pathPattern=".*\\..*\\.SNA" />
+                <data android:pathPattern=".*\\..*\\..*\\.SNA" />
+                <data android:pathPattern=".*\\.z80" />
+                <data android:pathPattern=".*\\..*\\.z80" />
+                <data android:pathPattern=".*\\..*\\..*\\.z80" />
+                <data android:pathPattern=".*\\.Z80" />
+                <data android:pathPattern=".*\\..*\\.Z80" />
+                <data android:pathPattern=".*\\..*\\..*\\.Z80" />
+                <data android:pathPattern=".*\\.scr" />
+                <data android:pathPattern=".*\\..*\\.scr" />
+                <data android:pathPattern=".*\\..*\\..*\\.scr" />
+                <data android:pathPattern=".*\\.SCR" />
+                <data android:pathPattern=".*\\..*\\.SCR" />
+                <data android:pathPattern=".*\\..*\\..*\\.SCR" />
+                <data android:pathPattern=".*\\.bin" />
+                <data android:pathPattern=".*\\..*\\.bin" />
+                <data android:pathPattern=".*\\..*\\..*\\.bin" />
+                <data android:pathPattern=".*\\.BIN" />
+                <data android:pathPattern=".*\\..*\\.BIN" />
+                <data android:pathPattern=".*\\..*\\..*\\.BIN" />
+                <data android:pathPattern=".*\\.cod" />
+                <data android:pathPattern=".*\\..*\\.cod" />
+                <data android:pathPattern=".*\\..*\\..*\\.cod" />
+                <data android:pathPattern=".*\\.COD" />
+                <data android:pathPattern=".*\\..*\\.COD" />
+                <data android:pathPattern=".*\\..*\\..*\\.COD" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>

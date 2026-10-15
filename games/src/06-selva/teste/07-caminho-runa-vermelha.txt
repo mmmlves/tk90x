@@ -1,0 +1,53 @@
+# 07 - caminho a pé, sem teletransporte: Clareira do Balão -> Mata dos
+#      Sussurros -> Samambaial -> Árvore Oca (runa vermelha) -> toca -> Escadaria Verde
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+poke lives 9
+echo --- oeste até a Mata dos Sussurros (20)
+hold o 130
+expect cur_room 20
+expect obj_player+1 224
+poke energy 128
+echo --- contorna as sebes até a saída sul
+hold a 10
+hold o 80
+expect obj_player+1 144
+expect obj_player+2 80
+hold a 40
+hold o 24
+expect obj_player+1 120
+hold a 30
+expect cur_room 26
+frames 10
+shot @SAIDA@/t7-samambaial.png
+poke energy 128
+echo --- Samambaial: desvia da moita e sai a oeste
+hold p 12
+hold a 58
+peek obj_player+1
+hold o 140
+expect cur_room 25
+poke energy 128
+echo --- Árvore Oca: sobe, contorna as árvores e pega a runa vermelha
+hold q 24
+hold o 80
+expect obj_player+1 144
+hold a 64
+hold o 88
+expect keys 1
+expect item_taken+4 1
+expect score+1 0x01
+frames 4
+shot @SAIDA@/t7-runa-vermelha.png
+echo --- entra na toca da árvore oca e sai na Escadaria Verde (2)
+poke energy 128
+hold p 56
+expect obj_player+1 112
+hold q 40
+expect cur_room 2
+frames 10
+shot @SAIDA@/t7-escadaria-verde.png
+expect lives 9

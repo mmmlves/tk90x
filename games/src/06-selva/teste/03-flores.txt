@@ -1,0 +1,100 @@
+# 03 - flores: velocidade, invulnerabilidade, confusão, fim do efeito, renascer
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+poke obj_en0+17 0
+poke obj_en0+0 0
+frames 4
+echo --- velocidade normal: 2 pixels por passo
+poke obj_player+1 120
+poke obj_player+2 104
+hold p 20
+peek obj_player+1
+expect obj_player+1 140
+echo --- Flor-do-vento (objeto 18) em (184,56): velocidade
+poke obj_player+1 184
+poke obj_player+2 72
+hold q 12
+expect item_taken+18 1
+expect effect 1
+expect obj_player+6 0x46
+peek effect_timer
+frames 6
+shot @SAIDA@/t3-flor-vento.png
+poke obj_player+1 120
+poke obj_player+2 104
+hold o 20
+peek obj_player+1
+expect obj_player+1 80
+echo --- o efeito acaba sozinho
+poke effect_timer 3
+frames 10
+expect effect 0
+expect obj_player+6 0x47
+echo --- Flor-tonta (objeto 20) na Encruzilhada (15) em (152,120): confusão
+poke obj_player+1 120
+poke obj_player+2 72
+hold q 80
+expect cur_room 15
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_player+1 140
+poke obj_player+2 120
+hold p 14
+expect item_taken+20 1
+expect effect 3
+echo --- P anda para a esquerda e Q para baixo
+poke obj_player+1 56
+poke obj_player+2 64
+hold p 20
+peek obj_player+1
+expect obj_player+1 36
+expect facing 2
+hold q 20
+peek obj_player+2
+expect obj_player+2 84
+expect facing 1
+frames 4
+shot @SAIDA@/t3-flor-tonta.png
+poke effect_timer 2
+frames 6
+expect effect 0
+echo --- de volta à Clareira do Balão, a Flor-do-vento renasceu
+poke obj_player+1 120
+poke obj_player+2 120
+hold a 40
+expect cur_room 21
+expect item_taken+18 0
+echo --- Flor-de-cristal (objeto 19) na Mata dos Sussurros (20) em (216,24)
+poke obj_player+1 120
+poke obj_player+2 72
+hold o 130
+expect cur_room 20
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_en0+41 0
+poke obj_en0+24 0
+poke obj_player+1 216
+poke obj_player+2 56
+hold q 30
+expect item_taken+19 1
+expect effect 2
+peek obj_player+6
+expectne obj_player+6 0x46
+echo --- invulnerável: o Casco encosta, morre e a energia não cai
+poke energy 100
+poke obj_en0+17 3
+poke obj_en0+18 2
+poke obj_en0+22 2
+poke obj_en0+0 1
+poke obj_en0+1 216
+poke obj_en0+2 36
+poke obj_en0+6 0x46
+frames 6
+expect energy 100
+expect obj_en0+17 4
+peekw score+1
+frames 4
+shot @SAIDA@/t3-flor-cristal.png

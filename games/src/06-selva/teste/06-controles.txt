@@ -1,0 +1,55 @@
+# 06 - página 2 do título, joystick Sinclair (padrão) e Cursor (tecla 2)
+sym @JOGO@/gerado/selva.sym
+load @JOGO@/gerado/selva.tap
+untilpc 0x8000 0xBFFF 20000
+frames 470
+shot @SAIDA@/t6-titulo-pag2.png
+echo --- Sinclair: 7 direita, 6 esquerda, 9 cima, 8 baixo, 0 dardo
+hold space 5
+untilmem tick 3 200
+expect ctrl_mode 0
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_player+1 120
+poke obj_player+2 72
+hold 7 10
+expect obj_player+1 130
+hold 6 10
+expect obj_player+1 120
+hold 9 10
+expect obj_player+2 62
+hold 8 10
+expect obj_player+2 72
+frames 14
+hold 0 4
+expect obj_proj+17 1
+echo --- volta ao título (fim de jogo) e escolhe Cursor
+poke lives 1
+poke energy 1
+poke drain_cnt 1
+untilmem game_result 2 200
+frames 100
+hold m 4
+frames 60
+hold 2 4
+frames 10
+expect ctrl_mode 1
+shot @SAIDA@/t6-titulo-cursor.png
+hold enter 4
+frames 120
+echo --- Cursor: 8 direita, 5 esquerda, 7 cima, 6 baixo
+poke obj_en0+17 0
+poke obj_en0+0 0
+poke obj_player+1 120
+poke obj_player+2 72
+hold 8 10
+expect obj_player+1 130
+hold 5 10
+expect obj_player+1 120
+hold 7 10
+expect obj_player+2 62
+hold 6 10
+expect obj_player+2 72
+echo --- Q A O P continuam valendo
+hold p 10
+expect obj_player+1 130

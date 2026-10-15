@@ -1,0 +1,28 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+frames 30
+echo --- sala ao norte (Q)
+hold q 90
+expect cur_room 2
+peek obj_player+2
+shot @SAIDA@/t2-trono.png
+echo --- volta ao sul e vai a leste
+hold a 40
+expect cur_room 1
+poke obj_player+1 120
+poke obj_player+2 72
+hold p 130
+expect cur_room 9
+peek obj_player+1
+shot @SAIDA@/t2-corrleste.png
+echo --- pega a maca em (4,4)
+poke energy 50
+poke obj_player+1 24
+poke obj_player+2 40
+hold q 10
+peek energy
+peek item_taken+18
+peek score+2
+shot @SAIDA@/t2-maca.png

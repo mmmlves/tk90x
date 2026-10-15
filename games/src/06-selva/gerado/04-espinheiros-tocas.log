@@ -1,0 +1,26 @@
+[4] untilpc: 4121 quadros, pc=0x8BC1 ok
+[6] untilmem tick==3: 23 quadros ok
+[9] --- espinheiro vermelho a leste da Clareira do Balão, sem a runa (joystick 7)
+[13] expect cur_room == 21 (valor 21): ok
+[14] expect link_open+2 == 0 (valor 0): ok
+[15] obj_player+1 = 224 (0xE0)
+[16] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t4-espinheiro-fechado.png
+[17] --- com a runa vermelha
+[21] expect link_open+2 == 1 (valor 1): ok
+[23] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t4-espinheiro-aberto.png
+[25] expect cur_room == 22 (valor 22): ok
+[27] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t4-vale-das-flores.png
+[28] --- volta e desce para a Trilha do Riacho (27), que tem uma toca
+[30] expect cur_room == 21 (valor 21): ok
+[34] expect cur_room == 27 (valor 27): ok
+[39] --- a toca em (112,64) leva à Lagoa Escura (12)
+[43] expect cur_room == 12 (valor 12): ok
+[44] obj_player+1 = 48 (0x30)
+[45] obj_player+2 = 32 (0x20)
+[46] on_stair = 0 (0x00)
+[48] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t4-lagoa-escura.png
+[49] --- sai da toca e entra de novo: volta para a Trilha do Riacho
+[51] expect on_stair == 0 (valor 0): ok
+[52] expect cur_room == 12 (valor 12): ok
+[54] expect cur_room == 27 (valor 27): ok
+quadros=4407 falhas=0

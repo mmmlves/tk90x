@@ -1,0 +1,69 @@
+sym @JOGO@/gerado/castelo.sym
+load @JOGO@/gerado/castelo.tap
+untilpc 0x8000 0xBFFF 20000
+hold space 5
+untilmem tick 3 200
+echo --- tiro: fantasma vivo acima do jogador
+poke obj_en0+17 3
+poke obj_en0+18 0
+poke obj_en0+22 1
+poke obj_en0+0 1
+poke obj_en0+1 120
+poke obj_en0+2 24
+poke obj_en0+6 0x47
+poke obj_player+1 120
+poke obj_player+2 96
+poke facing 0
+frames 2
+press space
+frames 6
+shot @SAIDA@/t3-tiro.png
+release space
+untilmem obj_en0+17 4 60
+expect obj_en0+17 4
+expect score+2 0x50
+shot @SAIDA@/t3-acerto.png
+echo --- cavaleiro precisa de 2 tiros
+untilmem obj_proj+17 0 50
+poke obj_en0+41 3
+poke obj_en0+42 2
+poke obj_en0+46 2
+poke obj_en0+24 1
+poke obj_en0+25 120
+poke obj_en0+26 24
+frames 10
+hold space 4
+untilmem obj_en0+46 1 80
+expect obj_en0+41 3
+frames 10
+hold space 4
+untilmem obj_en0+41 4 80
+peekw score+1
+echo --- porta vermelha sem chave (joystick 6)
+poke obj_player+1 20
+poke obj_player+2 72
+hold 6 20
+expect cur_room 1
+expect link_open+2 0
+echo --- com a chave vermelha
+poke keys 1
+hold 6 6
+expect link_open+2 1
+shot @SAIDA@/t3-porta.png
+hold o 30
+expect cur_room 7
+shot @SAIDA@/t3-galeria.png
+echo --- escada da galeria (14,8) -> escritorio
+hold o 130
+expect cur_room 13
+shot @SAIDA@/t3-escritorio.png
+echo --- sai da escada e volta
+poke obj_player+1 112
+peek obj_player+2
+peek on_stair
+hold q 20
+peek obj_player+2
+peek on_stair
+hold a 24
+peek obj_player+2
+expect cur_room 7

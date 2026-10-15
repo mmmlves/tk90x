@@ -1,0 +1,3 @@
+// Projeto Android do emulador TK90X / TK95 (ver docs/ANDROID.md)
+rootProject.name = 'tk90x'
+include ':app'

@@ -1,0 +1,26 @@
+# Segredos
+.env
+*.env
+**/.env
+*.jks
+*.keystore
+keystore.properties
+
+# Saidas de build e pacotes gerados
+build/
+dist/
+*.apk
+*.o
+*.exe
+
+# Toolchains baixados localmente (llvm-mingw, SDL2, Android SDK/NDK, zxdev):
+# veja docs/research/windows-build.md, docs/research/android-build.md e docs/ANDROID.md
+tools/
+
+# Editores / SO
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+__pycache__/

@@ -1,0 +1,38 @@
+[5] untilpc: 4121 quadros, pc=0x8BC1 ok
+[7] untilmem tick==3: 23 quadros ok
+[11] --- Névoa viva acima de Nina; dardo para cima
+[25] expect obj_proj+17 == 1 (valor 1): ok
+[26] expect obj_proj+22 == 0 (valor 0): ok
+[28] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t2-dardo.png
+[30] untilmem obj_en0+17==4: 18 quadros ok
+[31] expect obj_en0+17 == 4 (valor 4): ok
+[32] expect score+2 == 80 (valor 80): ok
+[33] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t2-acerto.png
+[38] --- Casco (tipo 2) precisa de 2 dardos
+[39] untilmem obj_proj+17==0: 0 quadros ok
+[50] untilmem obj_en0+46==1: 22 quadros ok
+[51] expect obj_en0+41 == 3 (valor 3): ok
+[55] untilmem obj_en0+41==4: 12 quadros ok
+[56] expect score+1 == 1 (valor 1): ok
+[57] expect score+2 == 80 (valor 80): ok
+[61] --- Bocão (tipo 3, parado) precisa de 3 dardos; dardo para a direita
+[62] untilmem obj_proj+17==0: 0 quadros ok
+[74] expect obj_proj+22 == 3 (valor 3): ok
+[76] tela -> /tmp/claude-1000/-home-mmalves-workspace-emuladores-tk90x/659b9444-5a73-4631-80c8-b446ba89b5b4/scratchpad/origgames/qa06/telas1/t2-dardo-direita.png
+[77] untilmem obj_en0+70==2: 26 quadros ok
+[78] expect obj_en0+49 == 200 (valor 200): ok
+[79] expect obj_en0+50 == 100 (valor 100): ok
+[83] untilmem obj_en0+70==1: 34 quadros ok
+[87] untilmem obj_en0+65==4: 34 quadros ok
+[88] expect score+1 == 3 (valor 3): ok
+[89] expect score+2 == 0 (valor 0): ok
+[90] --- dardo para a esquerda e para baixo
+[91] untilmem obj_proj+17==0: 0 quadros ok
+[95] expect obj_proj+22 == 2 (valor 2): ok
+[96] untilmem obj_proj+17==0: 42 quadros ok
+[100] expect obj_proj+22 == 1 (valor 1): ok
+[101] --- Zunzum (tipo 1) encosta em Nina: -8 de energia
+[102] untilmem obj_proj+17==0: 24 quadros ok
+[112] expect energy == 92 (valor 92): ok
+[113] expect obj_en0+89 == 4 (valor 4): ok
+quadros=4601 falhas=0
