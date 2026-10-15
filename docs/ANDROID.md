@@ -13,7 +13,20 @@ o teclado do TK na tela), roda em tela cheia na horizontal e já traz as fitas d
 > **Situação:** o APK compila e passa nas verificações estáticas (`aapt2`, `apksigner`, símbolos
 > JNI). A versão 1.0 foi instalada num celular: os jogos abriam, mas o joystick parecia não
 > funcionar, porque a maioria dos jogos começa no teclado. A 1.1 corrige isso com os perfis dos
-> jogos (veja "O joystick em cada jogo"). Relate o que encontrar (veja "Depurar" no fim).
+> jogos (veja "O joystick em cada jogo"), e a 1.2 revisa os perfis jogo a jogo. A 1.3 corrige a
+> imagem congelada em celulares com recorte da câmera (veja "Versões"). Relate o que encontrar
+> (veja "Depurar" no fim).
+
+### Versões
+
+| Versão | `versionCode` | O que muda |
+|---|---|---|
+| 1.3 | 4 | Celulares com recorte da câmera (notch ou furo na tela): a imagem não congela mais depois do primeiro quadro, a tela inteira é usada (inclusive o lado do recorte) e a imagem e os controles de toque ficam fora do recorte, nos dois sentidos da horizontal. |
+| 1.2 | 3 | Perfis de controle revisados jogo a jogo; toque curto no FOGO e nas teclas dura no mínimo 200 ms. |
+| 1.1 | 2 | Perfis de controle por jogo e correções de toque. |
+| 1.0 | 1 | Primeira versão. |
+
+Cada versão instala por cima das anteriores (mesma chave de assinatura), mantendo os dados.
 
 ## 1. Instalar no celular
 
@@ -21,8 +34,8 @@ Há dois APKs, gerados por `make android` em `build/android/`:
 
 | Arquivo | Para quê |
 |---|---|
-| `tk90x-1.1-release.apk` (2,3 MB) | **O que você deve instalar.** Otimizado, assinado com a chave de desenvolvimento do projeto. |
-| `tk90x-1.1-debug.apk` (2,9 MB) | Para desenvolvimento (depurável, um pouco maior e mais lento). |
+| `tk90x-1.3-release.apk` (2,3 MB) | **O que você deve instalar.** Otimizado, assinado com a chave de desenvolvimento do projeto. |
+| `tk90x-1.3-debug.apk` (2,9 MB) | Para desenvolvimento (depurável, um pouco maior e mais lento). |
 
 Os dois têm o mesmo nome de pacote (`br.com.tk90x.emulador`), mas são assinados com chaves
 diferentes. O Android só atualiza um app com um APK assinado pela **mesma chave**: para trocar
@@ -31,7 +44,7 @@ gravados dentro do app.
 
 ### Sem cabo (o mais simples)
 
-1. Copie o `tk90x-1.1-release.apk` para o celular: mande por e-mail ou mensagem para você
+1. Copie o `tk90x-1.3-release.apk` para o celular: mande por e-mail ou mensagem para você
    mesmo, baixe de um link ou copie pelo cabo USB para a pasta `Download`.
 2. Toque no arquivo, no gerenciador de arquivos ("Arquivos", "Meus arquivos") ou na lista de
    downloads do navegador.
@@ -55,7 +68,7 @@ gravados dentro do app.
    ```sh
    . tools/android/env.sh
    adb devices                                         # o aparelho deve aparecer como "device"
-   adb install -r build/android/tk90x-1.1-release.apk  # -r = atualiza mantendo os dados
+   adb install -r build/android/tk90x-1.3-release.apk  # -r = atualiza mantendo os dados
    ```
 
    No Android 11 ou mais novo também dá sem cabo: Opções do desenvolvedor → Depuração por Wi-Fi,
@@ -185,8 +198,8 @@ O alvo roda `android/build.sh`, que carrega `tools/android/env.sh`, chama
 `./gradlew assembleDebug assembleRelease` e copia o resultado para:
 
 ```
-build/android/tk90x-1.1-debug.apk
-build/android/tk90x-1.1-release.apk
+build/android/tk90x-1.3-debug.apk
+build/android/tk90x-1.3-release.apk
 ```
 
 O primeiro build leva uns 2 minutos (o SDL é compilado para as 3 arquiteturas, em debug e
@@ -220,8 +233,8 @@ incremental cai para uns 15 segundos.
 `versionCode` e `versionName` ficam no começo de `android/app/build.gradle`
 (`tkVersionCode` / `tkVersionName`). Para publicar uma versão nova, aumente os dois: o
 `versionCode` tem de crescer para o Android aceitar a atualização, e o `versionName` entra no
-nome dos APKs. Versão atual: `versionCode` 2, `versionName` 1.1 (instala por cima da 1.0, que
-tem a mesma chave de assinatura).
+nome dos APKs. Versão atual: `versionCode` 4, `versionName` 1.3 (instala por cima da 1.0, da 1.1
+e da 1.2, que têm a mesma chave de assinatura).
 
 ### Assinatura
 
@@ -229,7 +242,7 @@ O release é assinado com a **chave de desenvolvimento** `tools/android/keystore
 (senha publicada de propósito em `keystore.properties`; não use para a Play Store). O debug usa a
 chave de debug do kit (`tools/android/android-user-home/debug.keystore`). Guarde as duas: um
 celular só aceita atualizar o app com APKs assinados pela mesma chave. Sem
-`keystore.properties`, o release sai sem assinatura (`tk90x-1.1-release-unsigned.apk`).
+`keystore.properties`, o release sai sem assinatura (`tk90x-1.3-release-unsigned.apk`).
 
 ### Estrutura
 
@@ -278,6 +291,7 @@ roda o `main()` de `src/main.c` numa thread própria (a "thread do SDL").
 | `android_games_dir()` | Na primeira execução, ou quando o carimbo de `games.idx` muda (APK novo com outras fitas), extrai `assets/games/*` para `<armazenamento interno>/games`, lendo do APK pelo `AAssetManager` do NDK (`getAssets()` por JNI; não pelo `SDL_RWFromFile`, que com caminho relativo tentaria antes o armazenamento interno e, numa atualização, copiaria a fita extraída antiga sobre ela mesma), e grava a lista em `games/.indice`. Arquivos que saíram do APK são apagados. Se algo falhar, a próxima execução tenta de novo. Devolve o diretório (ou NULL). |
 | `android_in_multiwindow()` | `Activity.isInMultiWindowMode()` por JNI (Android 7+; antes, 0). Em tela dividida ou janela flutuante, perder o foco não pausa a emulação; só ir para o segundo plano pausa. |
 | `android_keep_screen_on(on)` | `SDL_DisableScreenSaver()` / `SDL_EnableScreenSaver()`, que o SDL traduz para `FLAG_KEEP_SCREEN_ON`. O `main.c` desliga ao ir para o segundo plano e liga ao voltar. |
+| `android_safe_insets(ins)` | Faixas da janela cobertas pelo recorte da câmera (esquerda, alto, direita, baixo, em pixels da superfície do SDL). O Java lê o `DisplayCutout` a cada novo layout da janela (Android 9+; o recorte troca de lado ao girar 180 graus) e chama `nativeSafeInsets()`, que guarda os valores sob mutex. O `render_touch` os passa a cada quadro para `touch_set_safe_insets()`, e o `touch_layout` monta a imagem e os controles na parte livre da tela. No PC dá para simular com `--safe-insets 136,0,0,0`. |
 
 O "Abrir com" (`ACTION_VIEW`) chega ao `onCreate` (app fechado) ou ao `onNewIntent` (app
 aberto; a Activity é `singleTask`) e segue o mesmo caminho do seletor. O `SDLActivity` original
@@ -298,7 +312,9 @@ Outros ajustes do lado Java e do manifesto:
   registra um receptor sem sinalizador, e o Android 14 recusaria com `SecurityException`
   (controles USB via HIDAPI). Não precisa ser exportado: o `PendingIntent` de `USB_PERMISSION` é
   explícito e do próprio app, e USB/Bluetooth conectado ou desconectado são broadcasts do sistema.
-- Modo imersivo reaplicado no `onResume` e ao recuperar o foco; `configChanges` cobre giro,
+- Tela cheia e recorte da câmera definidos antes do primeiro layout (veja "Imagem congelada com
+  recorte da câmera"); o modo imersivo é conferido no `onResume` e ao recuperar o foco, e só é
+  reaplicado se algo mudou. No Android, F11 (teclado físico) não sai da tela cheia. `configChanges` cobre giro,
   tamanho de tela, teclado, densidade, texto em negrito, gênero gramatical, troca de chip
   (`mcc`/`mnc`) etc., para a Activity não ser recriada (o SDL recomeçaria do zero).
 - Se mesmo assim a Activity for recriada (ou o processo encerrado e retomado pelos Recentes), o
@@ -314,16 +330,83 @@ Outros ajustes do lado Java e do manifesto:
 Fora do Android, `android_bridge.h` traz versões vazias das funções (`android_games_dir()`
 devolve NULL), e `main.c` pode chamá-las sem `#ifdef`.
 
+### Imagem congelada com recorte da câmera
+
+Até a 1.2, num aparelho com recorte da câmera (notch ou furo) o app ia para a horizontal,
+desenhava o primeiro quadro e a imagem congelava. O `logcat` mostrava, sem parar:
+
+```
+SurfaceFlinger: [SurfaceView - br.com.tk90x.emulador/...TK90XActivity#0] rejecting buffer:
+  bufWidth=2400, bufHeight=1080, front.active_legacy.{w=2264, h=1080}
+```
+
+Reproduzido no emulador (Android 11, 1080x2400, sobreposição `com.android.internal.emulation.pixel_5`,
+recorte de 136 px). A causa tem duas partes:
+
+1. **A janela mudava de tamanho logo depois de criada.** O primeiro layout era feito sem o modo de
+   recorte `shortEdges` e com as barras do sistema visíveis: o `SDLActivity.onCreate` enfileira
+   `setWindowStyle(false)` (barras visíveis, `FLAG_FORCE_NOT_FULLSCREEN`), e o
+   `layoutInDisplayCutoutMode` só era aplicado no `onResume`/foco e pelo `setWindowStyle(true)` que
+   o SDL chama ao criar a janela `SDL_WINDOW_FULLSCREEN_DESKTOP`. A superfície nascia com 2264x1080
+   (a tela menos o recorte) e, segundos depois, passava a 2400x1080 (`surfaceChanged` duas vezes).
+2. **O Android 11 só aplica a mudança de tamanho/posição da `SurfaceView` junto com um quadro novo da
+   janela-mãe.** O SDL desenha tudo na `SurfaceView` e a janela-mãe quase nunca redesenha; se esse
+   quadro não sai, o SurfaceFlinger fica com o tamanho antigo (2264, deslocado 136 px) e recusa
+   todos os quadros de 2400 que o EGL passa a entregar. No emulador ATD isso acontece sempre, porque
+   a imagem vem com `debug.hwui.drawing_enabled=0` (a interface Java nunca desenha quadros): com
+   `adb shell setprop debug.hwui.drawing_enabled 1` a mesma 1.2 recusa um único quadro e segue.
+   Num celular comum a janela-mãe redesenha e o problema vira, no máximo, um quadro perdido ao
+   abrir, o que explica um celular sem recorte (ou rápido) não congelar.
+
+Não era o `SDL_WINDOW_FULLSCREEN` (o app já usa `SDL_WINDOW_FULLSCREEN_DESKTOP`, sem trocar o modo
+de vídeo) nem tamanho fixo de superfície (o SDL 2.32 não chama `setFixedSize`; o tamanho dos
+buffers segue o da `SurfaceView`).
+
+A correção da 1.3 faz a janela nascer com o tamanho final, para a superfície do SDL nunca mudar de
+tamanho logo depois de criada:
+
+- `res/values-v28/styles.xml`: `android:windowLayoutInDisplayCutoutMode = shortEdges` no tema;
+- `TK90XActivity.onCreate`, **antes** do `super.onCreate`: `FLAG_FULLSCREEN` (sem
+  `FLAG_FORCE_NOT_FULLSCREEN`) e `LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`;
+- logo depois do `super.onCreate`, uma mensagem na fila do Looper (que roda depois do
+  `setWindowStyle(false)` do SDL e antes do primeiro layout) restaura o modo imersivo; o
+  `setWindowStyle(true)` que vem do C pede os mesmos sinalizadores e nada muda de tamanho;
+- `hideSystemUi()` (foco, `onResume`) só chama `setAttributes`/`setSystemUiVisibility` quando algo
+  está diferente, e no Android o F11 não sai da tela cheia.
+
+O C já segue o tamanho real da superfície: o `render_touch` lê `SDL_GetRendererOutputSize` a cada
+quadro e refaz o layout (no Android, `SDL_WINDOWEVENT_SIZE_CHANGED` só é registrado no log como
+`tk90x: janela LxA`); o app não usa texturas de destino, então `SDL_RENDER_TARGETS_RESET` não
+exige nada, e `SDL_RENDER_DEVICE_RESET` recria renderizador e texturas. Com a tela inteira em uso,
+o `DisplayCutout` vai para o C (`android_safe_insets`) e a imagem e os controles ficam fora do
+recorte, do lado esquerdo ou direito conforme o giro.
+
+Limite que continua: no emulador ATD (`debug.hwui.drawing_enabled=0`), qualquer mudança de tamanho
+da superfície com o app aberto (tela dividida, por exemplo) ainda congela a imagem, pela parte 2
+acima; em aparelhos de verdade a janela-mãe redesenha e isso não acontece.
+
 ### Depurar
 
-Não há emulador do Android nesta máquina (sem KVM). Num aparelho com depuração USB:
+Num aparelho com depuração USB:
 
 ```sh
 . tools/android/env.sh
-adb install -r build/android/tk90x-1.1-debug.apk
+adb install -r build/android/tk90x-1.3-debug.apk
 adb logcat -s SDL SDL/APP TK90X AndroidRuntime
 ```
 
 As mensagens do emulador (`SDL_Log`) aparecem com a tag `SDL/APP`; as do lado Java, com `TK90X`.
+
+Sem aparelho, há um emulador do Android no kit (sem KVM, só emulação por software, uns 4 quadros
+por segundo): `tools/android/start-emulator.sh` liga o AVD `tk90x_atd30` (Android 11 ATD x86_64,
+1080x2400) em uns 7 minutos, e `. tools/android/emulator-env.sh` prepara o `adb`. Para testar o
+recorte da câmera: `adb shell cmd overlay enable-exclusive --category
+com.android.internal.emulation.pixel_5` (desligar: `cmd overlay disable` com o mesmo nome); para
+girar: `adb shell settings put system accelerometer_rotation 0` e `user_rotation 1` ou `3`. Duas
+diferenças da imagem ATD para um celular: a interface Java não desenha
+(`debug.hwui.drawing_enabled=0`) e, como o emulador é ligado com `-no-audio`, a saída de som falha
+(`pcm_write failed` no `logcat`): a fila do OpenSL ES esvazia sem parar e o log enche de
+`AudioTrack: stop`/`PlayerBase::stop()` e `pthread_mutex_lock_timeout_np returned 110`. Isso é do
+emulador sem som, não do app: o SDL abre o dispositivo uma vez e não o reabre.
 Para ver os arquivos extraídos no aparelho (só com o APK de debug):
 `adb shell run-as br.com.tk90x.emulador ls -la files/games`.

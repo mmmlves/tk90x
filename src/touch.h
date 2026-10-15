@@ -69,6 +69,9 @@ int  touch_enabled(const TouchUI *t);
  * (4:3, a maior possivel, escala inteira quando cabe; com o teclado aberto, a
  * area de papel fica acima dele). Barato: pode ser chamado a cada quadro. */
 void touch_layout(TouchUI *t, int win_w, int win_h, SDL_Rect *screen_dst);
+/* Faixas da area de desenho cobertas pelo recorte da camera (notch/furo), em
+ * pixels: o proximo touch_layout poe a imagem e os controles fora delas. */
+void touch_set_safe_insets(TouchUI *t, int left, int top, int right, int bottom);
 
 /* Eventos SDL_FINGER* (multitoque) e de mouse (botao esquerdo). Devolve 1 se o
  * evento foi consumido e preenche *act (TOUCH_ACT_*). m pode ser NULL. */

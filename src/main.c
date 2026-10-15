@@ -32,7 +32,7 @@
 #endif
 
 #define APP_NAME     "TK90X/TK95"
-#define APP_VERSION  "1.2"
+#define APP_VERSION  "1.3"
 
 #define AUDIO_RATE   44100
 #define AUDIO_VOLUME 9000
@@ -77,6 +77,8 @@ typedef struct Options {
     const char *window_shot;    /* (testes) grava a janela renderizada ao sair */
     int         win_w, win_h;   /* (testes) --window-size LxA */
     int         touch_picker;   /* (testes) mostra a entrada do seletor do Android */
+    int         safe_set;       /* (testes) --safe-insets: recorte simulado da camera */
+    int         safe_ins[4];    /* esquerda, alto, direita, baixo (pixels) */
 } Options;
 
 /* --touch-script: evento sintetico agendado para um quadro exibido */
@@ -271,6 +273,8 @@ static const char *usage_text =
     "  --touch                controles de toque na tela (mouse), como no Android\n"
     "  --touch-script ARQ (ou --key-script), --window-shot ARQ.png, --window-size LxA\n"
     "                         (testes) toques/teclas sinteticos e captura da janela\n"
+    "  --safe-insets E,A,D,B  (testes) recorte da camera simulado: pixels cobertos a\n"
+    "                         esquerda, no alto, a direita e embaixo (modo toque)\n"
     "Na janela: F1 = menu e ajuda, F2 = abrir jogo, F3 = fita play/pausa,\n"
     "  F4 = setas (automatico/joystick/cursores), F5 = reset, F6 = salvar estado,\n"
     "  F7 = turbo, F8 = 50/60 Hz, F9 = tipo de joystick, F10 = modelo,\n"
@@ -403,6 +407,14 @@ static void parse_args(Options *o, int argc, char **argv)
             if (sscanf(v, "%dx%d", &o->win_w, &o->win_h) != 2 || o->win_w < 160 ||
                 o->win_h < 120 || o->win_w > 16384 || o->win_h > 16384)
                 fatal("valor invalido para --window-size: '%s' (ex.: 2400x1080)", v);
+        } else if (!strcmp(a, "--safe-insets")) {
+            const char *v = NEXT();
+            int *ins = o->safe_ins;
+            if (sscanf(v, "%d,%d,%d,%d", &ins[0], &ins[1], &ins[2], &ins[3]) != 4 ||
+                ins[0] < 0 || ins[1] < 0 || ins[2] < 0 || ins[3] < 0 ||
+                ins[0] > 4096 || ins[1] > 4096 || ins[2] > 4096 || ins[3] > 4096)
+                fatal("valor invalido para --safe-insets: '%s' (ex.: 136,0,0,0)", v);
+            o->safe_set = 1;
         } else {
             fatal("opcao desconhecida '%s' (veja --help)", a);
         }
@@ -1424,8 +1436,15 @@ static void handle_text(App *a, const char *text)
 
 static void set_fullscreen(App *a, int on)
 {
+#ifdef __ANDROID__
+    /* sempre tela cheia: sair dela mostraria as barras do sistema e mudaria o
+     * tamanho da superficie (TK90XActivity mantem o modo imersivo) */
+    (void)a;
+    (void)on;
+#else
     if (SDL_SetWindowFullscreen(a->win, on ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0) == 0)
         a->fullscreen = on;
+#endif
 }
 
 /* F2 / "Abrir jogo": navegador no ultimo diretorio. No Android a primeira
@@ -2291,6 +2310,10 @@ static void handle_event(App *a, const SDL_Event *e)
     case SDL_WINDOWEVENT:
         if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST) release_all(a);
 #ifdef __ANDROID__
+        /* o layout segue sozinho (render_touch le o tamanho de saida a cada
+         * quadro); o registro so ajuda a diagnosticar trocas de superficie */
+        if (e->window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+            SDL_Log("tk90x: janela %dx%d", e->window.data1, e->window.data2);
         /* Android: sem foco (outro app, aviso do sistema) a emulacao pausa */
         /* em tela dividida o app continua visivel: so o segundo plano pausa */
         if (e->window.event == SDL_WINDOWEVENT_FOCUS_LOST && !android_in_multiwindow())
@@ -2410,6 +2433,14 @@ static void render_touch(App *a, Uint32 now)
     a->out_w = w;
     a->out_h = h;
     touch_update_menu(a);
+    /* recorte da camera (Android 9+; --safe-insets nos testes): imagem e controles
+     * ficam fora dele. Lido a cada quadro: muda ao girar 180 graus. */
+    int ins[4] = { 0, 0, 0, 0 };
+    if (a->opt.safe_set) memcpy(ins, a->opt.safe_ins, sizeof ins);
+#ifdef __ANDROID__
+    else android_safe_insets(ins);
+#endif
+    touch_set_safe_insets(a->touch, ins[0], ins[1], ins[2], ins[3]);
     touch_layout(a->touch, w, h, &a->pic);
     SDL_RenderCopy(a->ren, a->tex, NULL, &a->pic);
     touch_draw(a->touch);

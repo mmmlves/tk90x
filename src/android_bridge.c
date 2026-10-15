@@ -73,6 +73,38 @@ Java_br_com_tk90x_emulador_TK90XActivity_nativeFilePicked(JNIEnv *env, jclass cl
     pthread_mutex_unlock(&g_pick_lock);
 }
 
+/* ------------------------------------------------------------------------- */
+/* Recorte da camera: thread Java (layout da janela) -> thread do SDL           */
+/* ------------------------------------------------------------------------- */
+
+static pthread_mutex_t g_ins_lock = PTHREAD_MUTEX_INITIALIZER;
+static int g_ins[4];
+
+JNIEXPORT void JNICALL
+Java_br_com_tk90x_emulador_TK90XActivity_nativeSafeInsets(JNIEnv *env, jclass cls, jint left,
+                                                          jint top, jint right, jint bottom);
+
+JNIEXPORT void JNICALL
+Java_br_com_tk90x_emulador_TK90XActivity_nativeSafeInsets(JNIEnv *env, jclass cls, jint left,
+                                                          jint top, jint right, jint bottom)
+{
+    (void)env;
+    (void)cls;
+    pthread_mutex_lock(&g_ins_lock);
+    g_ins[0] = left > 0 ? (int)left : 0;
+    g_ins[1] = top > 0 ? (int)top : 0;
+    g_ins[2] = right > 0 ? (int)right : 0;
+    g_ins[3] = bottom > 0 ? (int)bottom : 0;
+    pthread_mutex_unlock(&g_ins_lock);
+}
+
+void android_safe_insets(int ins[4])
+{
+    pthread_mutex_lock(&g_ins_lock);
+    memcpy(ins, g_ins, sizeof g_ins);
+    pthread_mutex_unlock(&g_ins_lock);
+}
+
 int android_poll_picked(char *path, size_t n)
 {
     int got = 0;

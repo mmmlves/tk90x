@@ -199,7 +199,15 @@ Other checks: `apksigner verify --print-certs X.apk` and `aapt2 dump xmltree --f
   `SDL_WINDOW_FULLSCREEN_DESKTOP`). SDLActivity then sets
   `SYSTEM_UI_FLAG_IMMERSIVE_STICKY | HIDE_NAVIGATION | FULLSCREEN` and uses the display cutout
   (`LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES`). The template theme is already
-  `android:Theme.NoTitleBar.Fullscreen`.
+  `android:Theme.NoTitleBar.Fullscreen`. Caveat found later (fixed in app 1.3): SDLActivity applies
+  these flags only after the window is first laid out (and its `onCreate` first posts
+  `setWindowStyle(false)`), so on a phone with a display cutout the SDL surface is created at
+  2264x1080 and then resized to 2400x1080. On Android 11 the SurfaceView resize is committed only
+  with a new frame of the parent window; when that frame never comes (always on the ATD emulator
+  image, which runs with `debug.hwui.drawing_enabled=0`) SurfaceFlinger keeps rejecting every
+  2400-wide buffer and the picture freezes. Set `windowLayoutInDisplayCutoutMode` in a
+  `values-v28` theme and the fullscreen flags before `super.onCreate`, so the first layout is
+  already the final size (see `docs/ANDROID.md`, "Imagem congelada com recorte da câmera").
 - **Deprecation warnings.** `javac` reports "Some input files use or override a deprecated
   API" for SDLActivity and `startActivityForResult`. They are harmless.
 

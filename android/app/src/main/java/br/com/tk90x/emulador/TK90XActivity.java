@@ -9,9 +9,14 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.util.Log;
+import android.view.DisplayCutout;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowInsets;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -30,7 +35,9 @@ import java.util.Locale;
  *  - seletor de arquivos do aparelho (ACTION_OPEN_DOCUMENT), chamado pelo C via JNI
  *    (src/android_bridge.c, android_open_picker);
  *  - "Abrir com" (ACTION_VIEW) de gerenciadores de arquivos e downloads do navegador;
- *  - tela sempre ligada e modo imersivo reaplicado ao voltar o foco.
+ *  - tela sempre ligada e modo imersivo reaplicado ao voltar o foco;
+ *  - tela cheia e recorte da camera (notch/furo) definidos antes do primeiro layout,
+ *    e as faixas cobertas pelo recorte informadas ao C (nativeSafeInsets).
  * Nos dois casos o documento (content://) e copiado para getCacheDir()/picked/<nome>
  * e o caminho comum vai para o C por nativeFilePicked().
  */
@@ -64,6 +71,25 @@ public class TK90XActivity extends SDLActivity {
         nativeFilePicked(path == null ? null : path.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Implementado em libmain.so (src/android_bridge.c): faixas da janela cobertas pelo
+     * recorte da camera (DisplayCutout), em pixels. A imagem e os controles de toque
+     * ficam fora delas (src/touch.c, touch_set_safe_insets).
+     */
+    private static native void nativeSafeInsets(int left, int top, int right, int bottom);
+
+    /** Barras do sistema escondidas; voltam com um gesto e somem sozinhas (imersivo). */
+    private static final int IMMERSIVE_FLAGS =
+            View.SYSTEM_UI_FLAG_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
+    /** Ultimo recorte informado ao C (esquerda, alto, direita, baixo). */
+    private final int[] mInsets = { -1, -1, -1, -1 };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         // O SDLActivity.onCreate entrega intent.getData().getPath() ao C como "arquivo
@@ -77,9 +103,24 @@ public class TK90XActivity extends SDLActivity {
             stripped.setData(null);
             setIntent(stripped);
         }
+        // A janela ja nasce do tamanho final: tela cheia e ocupando o recorte da camera
+        // (tambem no tema, values-v28). Se o tamanho mudasse depois que a superficie do
+        // SDL existe, o Android 11 so aplicaria o tamanho novo da SurfaceView junto com
+        // um quadro novo da janela-mae, que este app nunca desenha (tudo vai para a
+        // SurfaceView): o SurfaceFlinger ficaria recusando os quadros do tamanho novo e
+        // a imagem congelaria (docs/ANDROID.md, "Imagem congelada com recorte").
+        applyWindowFlags();
         super.onCreate(savedInstanceState);
         if (mBrokenLibraries) return;          /* o SDL ja mostrou o erro */
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        // O SDLActivity.onCreate enfileirou setWindowStyle(false) (barras visiveis,
+        // FLAG_FORCE_NOT_FULLSCREEN), que roda depois do onCreate mas antes do primeiro
+        // layout. Esta mensagem entra na fila depois daquela e restaura o modo imersivo
+        // ainda antes do primeiro layout; o setWindowStyle(true) que vem do C ao criar a
+        // janela SDL (SDL_WINDOW_FULLSCREEN_DESKTOP) pede os mesmos sinalizadores, e a
+        // janela nao muda de tamanho.
+        new Handler(Looper.getMainLooper()).post(this::hideSystemUi);
+        watchCutout();
         // So abre o arquivo num lancamento de verdade. Uma Activity recriada (mudanca de
         // configuracao nao tratada, ou processo encerrado e retomado pelos Recentes)
         // recebe de novo a intent VIEW original da tarefa: reabrir aquele arquivo
@@ -108,22 +149,68 @@ public class TK90XActivity extends SDLActivity {
         hideSystemUi();
     }
 
-    /** Tela cheia imersiva (as barras do sistema voltam com um gesto e somem sozinhas). */
+    /**
+     * Tela cheia imersiva. So mexe no que estiver diferente: cada setAttributes forca
+     * um novo layout da janela, e repetir sem necessidade a cada foco nao ajuda nada.
+     */
     private void hideSystemUi() {
+        applyWindowFlags();
         View decor = getWindow().getDecorView();
-        decor.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        if (decor.getSystemUiVisibility() != IMMERSIVE_FLAGS)
+            decor.setSystemUiVisibility(IMMERSIVE_FLAGS);
+    }
+
+    /**
+     * FLAG_FULLSCREEN (sem FLAG_FORCE_NOT_FULLSCREEN) e, no Android 9+, a janela ocupando
+     * o recorte da camera nas bordas curtas (o lado do recorte em paisagem). Pode ser
+     * chamado antes do super.onCreate: so usa os atributos da janela, nao a decor view.
+     */
+    private void applyWindowFlags() {
+        Window w = getWindow();
+        final int full = WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        final int mask = full | WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN;
+        if ((w.getAttributes().flags & mask) != full) w.setFlags(full, mask);
         if (Build.VERSION.SDK_INT >= 28) {
-            WindowManager.LayoutParams lp = getWindow().getAttributes();
-            lp.layoutInDisplayCutoutMode =
-                    WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
-            getWindow().setAttributes(lp);
+            WindowManager.LayoutParams lp = w.getAttributes();
+            final int edges = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            if (lp.layoutInDisplayCutoutMode != edges) {
+                lp.layoutInDisplayCutoutMode = edges;
+                w.setAttributes(lp);
+            }
         }
+    }
+
+    /**
+     * Informa ao C as faixas cobertas pelo recorte da camera a cada novo layout da
+     * janela (o recorte troca de lado ao girar 180 graus). Antes do Android 9 nao ha
+     * recorte e o C fica com tudo 0.
+     */
+    private void watchCutout() {
+        if (Build.VERSION.SDK_INT < 28) return;
+        getWindow().getDecorView().setOnApplyWindowInsetsListener((v, insets) -> {
+            reportCutout(insets);
+            return v.onApplyWindowInsets(insets);
+        });
+    }
+
+    @android.annotation.TargetApi(28)
+    private void reportCutout(WindowInsets insets) {
+        DisplayCutout c = insets.getDisplayCutout();
+        int l = 0, t = 0, r = 0, b = 0;
+        if (c != null) {
+            l = c.getSafeInsetLeft();
+            t = c.getSafeInsetTop();
+            r = c.getSafeInsetRight();
+            b = c.getSafeInsetBottom();
+        }
+        if (l == mInsets[0] && t == mInsets[1] && r == mInsets[2] && b == mInsets[3]) return;
+        mInsets[0] = l;
+        mInsets[1] = t;
+        mInsets[2] = r;
+        mInsets[3] = b;
+        Log.v(TAG, "recorte da camera: esquerda " + l + ", alto " + t + ", direita " + r
+                + ", baixo " + b);
+        nativeSafeInsets(l, t, r, b);
     }
 
     /**

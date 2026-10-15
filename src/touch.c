@@ -128,6 +128,8 @@ struct TouchUI {
     SDL_Texture  *font;
     int       enabled;
     int       w, h;              /* area de desenho (pixels do renderizador) */
+    int       ins_l, ins_t, ins_r, ins_b;   /* recorte da camera (touch_set_safe_insets) */
+    SDL_Rect  safe;              /* parte de w x h livre do recorte: onde vai o layout */
     float     u;                 /* unidade de tamanho (~ um botao) */
     float     pad;
     float     dpi;               /* 0 = desconhecido */
@@ -422,15 +424,16 @@ static void layout_menu(TouchUI *t)
     if (gap < 3) gap = 3;
     int n = 0;
     for (int i = 0; i < MENU_N; i++) if (t->items[i].visible) n++;
-    int cols = t->w >= t->h ? 2 : 1;
+    const SDL_Rect sa = t->safe;
+    int cols = sa.w >= sa.h ? 2 : 1;
     int rows = (n + cols - 1) / cols;
     int title_h = iround(u * 0.7f);
     int ih = iround(u * 0.8f);
-    int maxih = (int)(((float)t->h * 0.94f - (float)title_h - 2 * pad - (float)(rows - 1) * gap)
+    int maxih = (int)(((float)sa.h * 0.94f - (float)title_h - 2 * pad - (float)(rows - 1) * gap)
                       / (float)rows);
     if (ih > maxih) ih = maxih;
     if (ih < 16) ih = 16;
-    int avail_w = (int)(((float)t->w * 0.96f - 2 * pad - (float)(cols - 1) * gap) / (float)cols);
+    int avail_w = (int)(((float)sa.w * 0.96f - 2 * pad - (float)(cols - 1) * gap) / (float)cols);
 
     /* escala do texto: a maior em que rotulo + valor cabem */
     int ts = iround((float)ih * 0.38f / 8.0f);
@@ -459,8 +462,8 @@ static void layout_menu(TouchUI *t)
 
     int pw = cols * iw + (cols - 1) * gap + 2 * (int)pad;
     int ph = title_h + rows * ih + (rows - 1) * gap + 2 * (int)pad;
-    t->panel.x = (t->w - pw) / 2;
-    t->panel.y = (t->h - ph) / 2;
+    t->panel.x = sa.x + (sa.w - pw) / 2;
+    t->panel.y = sa.y + (sa.h - ph) / 2;
     t->panel.w = pw;
     t->panel.h = ph;
     int cs = title_h - gap;
@@ -502,11 +505,10 @@ static SDL_Rect place_picture(int w, int h, int top, int bottom, int kb)
     return pic;
 }
 
-void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
+/* Layout dentro de uma area w x h com origem em (0,0); touch_layout depois o
+ * desloca para a area livre do recorte */
+static void layout_area(TouchUI *t, int w, int h)
 {
-    if (!t) return;
-    t->w = w;
-    t->h = h;
     float u = (float)h * 0.11f;
     if (u > (float)w * 0.065f) u = (float)w * 0.065f;   /* telas 4:3 (tablets) */
     if (t->dpi > 0) {
@@ -565,7 +567,6 @@ void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
     if (kb && !stack && t->enabled)
         pic = place_picture(w, h, (int)pad + bh + gap, bottom, kb);
     t->pic = pic;
-    if (dst) *dst = pic;
     if (!t->enabled) return;
 
     int ml = pic.x;
@@ -629,7 +630,50 @@ void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
     if (ml - 2 * (int)pad >= 2 * t->jr) t->lbl_room = ml - 2 * (int)pad;
     else t->lbl_room = ml + pic.w / 10 - 2 * (int)pad;
     if (t->lbl_room < (int)(2 * t->jr)) t->lbl_room = (int)(2 * t->jr);
+}
 
+static void shift_rect(SDL_Rect *rc, int dx, int dy)
+{
+    rc->x += dx;
+    rc->y += dy;
+}
+
+void touch_set_safe_insets(TouchUI *t, int left, int top, int right, int bottom)
+{
+    if (!t) return;
+    t->ins_l = left > 0 ? left : 0;
+    t->ins_t = top > 0 ? top : 0;
+    t->ins_r = right > 0 ? right : 0;
+    t->ins_b = bottom > 0 ? bottom : 0;
+}
+
+void touch_layout(TouchUI *t, int w, int h, SDL_Rect *dst)
+{
+    if (!t) return;
+    t->w = w;
+    t->h = h;
+    /* recorte da camera (notch/furo): imagem e controles ficam fora dele. Um
+     * recorte que tomaria mais de 1/4 da tela e ignorado (valor sem sentido). */
+    int l = t->ins_l, r = t->ins_r, tp = t->ins_t, b = t->ins_b;
+    if (l + r > w / 4) l = r = 0;
+    if (tp + b > h / 4) tp = b = 0;
+    t->safe.x = l;
+    t->safe.y = tp;
+    t->safe.w = w - l - r;
+    t->safe.h = h - tp - b;
+    layout_area(t, t->safe.w, t->safe.h);
+    shift_rect(&t->pic, l, tp);
+    if (dst) *dst = t->pic;
+    if (!t->enabled) return;
+    shift_rect(&t->kb, l, tp);
+    for (int i = 0; i < 4; i++)
+        for (int c = 0; c < 10; c++) shift_rect(&t->key[i][c], l, tp);
+    for (int i = 0; i < BTN_COUNT; i++) shift_rect(&t->btn[i], l, tp);
+    t->jx += (float)l;
+    t->jy += (float)tp;
+    t->fx += (float)l;
+    t->fy += (float)tp;
+    t->lbl_x0 += l;
     layout_menu(t);
 }
 

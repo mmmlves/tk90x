@@ -45,7 +45,7 @@ Controles na tela: joystick à esquerda, **FOGO** à direita, **TECLADO** abre o
 O botão Voltar fecha menus; apertado de novo, pergunta se quer sair.
 Os jogos incluídos já abrem com o joystick certo e mostram `Controles: ...` e como começar
 (por exemplo, `FOGO inicia` ou `TECLADO > 1, depois TECLADO`); em outros jogos, escolha em
-**MENU > Joystick** o mesmo controle do menu do jogo. A versão 1.2 instala por cima das anteriores (1.0 e 1.1).
+**MENU > Joystick** o mesmo controle do menu do jogo. A versão 1.3 instala por cima das anteriores (1.0, 1.1 e 1.2) e corrige a imagem que congelava em celulares com recorte da câmera (notch ou furo na tela).
 Para abrir outros jogos: **MENU > Abrir do aparelho**, ou toque num `.tap`/`.tzx` no gerenciador
 de arquivos e escolha **TK90X**. Detalhes em [docs/ANDROID.md](../docs/ANDROID.md).
 

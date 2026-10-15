@@ -326,7 +326,9 @@ Para testar a interface sem aparelho há duas opções escondidas. `--touch-scri
 `keydown left_alt`) em quadros dados, acerta os controles pelo nome, mostra o estado (`print`:
 teclas, joystick, modo das setas, `editor=1` com a ROM no editor) e lê a memória
 (`peek 0x94A2 2`). `--window-shot ARQ.png`
-grava a janela inteira ao sair, e `--window-size LxA` fixa o tamanho da janela. Com
+grava a janela inteira ao sair, `--window-size LxA` fixa o tamanho da janela e
+`--safe-insets E,A,D,B` simula o recorte da câmera de um celular (pixels cobertos à esquerda, no
+alto, à direita e embaixo; por exemplo `136,0,0,0`). Com
 `SDL_VIDEODRIVER=offscreen`, tudo roda sem tela. A sintaxe do script está comentada em `src/main.c`
 (procure `--touch-script`). Um exemplo que abre o teclado e digita `LOAD ""` com SYMBOL segurado:
 
@@ -356,15 +358,16 @@ saem de:
 
 ```sh
 make android
-# build/android/tk90x-1.1-release.apk   <- o que se instala no celular
-# build/android/tk90x-1.1-debug.apk     <- depuração
+# build/android/tk90x-1.3-release.apk   <- o que se instala no celular
+# build/android/tk90x-1.3-debug.apk     <- depuração
 ```
 
 O kit de compilação (JDK, SDK, NDK, Gradle e SDL2) fica todo em `tools/android/`, sem instalar
 nada no sistema. Como instalar no celular, usar, compilar e depurar está em
 [`docs/ANDROID.md`](docs/ANDROID.md). A versão 1.0 rodou num celular (os jogos abriam, mas o
-joystick parecia morto nos jogos que começam no teclado); a 1.1 traz os perfis dos jogos e
-instala por cima dela.
+joystick parecia morto nos jogos que começam no teclado); a 1.1 traz os perfis dos jogos, a 1.2
+os revisa jogo a jogo e a 1.3 corrige a imagem que congelava em celulares com recorte da câmera
+(notch). Cada versão instala por cima das anteriores.
 
 ## Modelos e 50/60 Hz
 

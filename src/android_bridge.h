@@ -5,7 +5,8 @@
  *   - arquivos abertos por outro app ("Abrir com" no gerenciador de arquivos ou nos
  *     downloads do navegador, ACTION_VIEW) chegam pelo mesmo caminho do seletor;
  *   - fitas que vem dentro do APK (assets/games) extraidas para o armazenamento interno;
- *   - manter a tela ligada.
+ *   - manter a tela ligada;
+ *   - recorte da camera (notch/furo): as faixas da tela que ele cobre.
  *
  * O lado Java (android/app/src/main/java/br/com/tk90x/emulador/TK90XActivity.java)
  * copia o documento escolhido (content://) para getCacheDir()/picked/<nome original>
@@ -48,6 +49,12 @@ void android_keep_screen_on(int on);
  * foco nao pausa a emulacao (o outro app tocado continua com o TK90X visivel). */
 int  android_in_multiwindow(void);
 
+/* Faixas da janela cobertas pelo recorte da camera (DisplayCutout, Android 9+), em
+ * pixels da superficie do SDL: ins[0..3] = esquerda, alto, direita, baixo. Tudo 0
+ * sem recorte (ou antes de o Java informar). O Java atualiza a cada novo layout
+ * (inclusive ao girar 180 graus, quando o recorte troca de lado). */
+void android_safe_insets(int ins[4]);
+
 #else  /* desktop: nada a fazer */
 
 static inline void android_open_picker(void) { }
@@ -55,6 +62,7 @@ static inline int  android_poll_picked(char *path, size_t n) { (void)path; (void
 static inline const char *android_games_dir(void) { return NULL; }
 static inline void android_keep_screen_on(int on) { (void)on; }
 static inline int  android_in_multiwindow(void) { return 0; }
+static inline void android_safe_insets(int ins[4]) { ins[0] = ins[1] = ins[2] = ins[3] = 0; }
 
 #endif
 
